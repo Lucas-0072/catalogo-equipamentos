@@ -1,0 +1,43 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "server",
+    "db",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://4AeLZ7AsMMvSvwP.root:kWug28eDH5wyv8gu6v9K@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/fHsedzar2C5zRfxneoKLZA?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": [
+    "no_db_push"
+  ],
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663679348636/fHsedzar2C5zRfxneoKLZA",
+    "access_key_id": "ASIAZV3A2ECZNVPKVZKU",
+    "secret_access_key": "kHf3xQdWcIt3RvwcQyE1Llif6hPnnAGxSczWl3RR",
+    "session_token": "IQoJb3JpZ2luX2VjED0aCXVzLWVhc3QtMSJGMEQCIHPbT7IUYrddJkaTrV0Uxmh13tIiBHB3J7AL+kCyM/A9AiBNqb+TLhuNoW9DyCXxlv6/Fb9u575QIwRnBAFnzR2jgSr1AwgGEAQaDDY2NTM4NjA5ODg2NiIMLe1va9+v3rRTXYdlKtIDaM6CCU6RfmnOlbkOHUQMBsBKVBt6vLMfs6cmc32btHZac7ZwH+k0jOg6IJbiN2ytUAZZj+u/iJdpyLuK8ZGAHY+A+TbxdbUuztJLH05UajbwXXZkxeXknpiG7kmtFgPtLwjEb+GQ32/WWv5IlWyr3P+O/oGSDYxcCF7ns9usfNrYaDbi0xEbrfsnk0o3QIXjddJBLhqduvoxrkGz1JT7S/dC3AASSIuzFiAFJR+W3hE5F0Ama5eMz9pzzu4LAaMRIAtY4ubTxM2zE16PSI6SUolILpDKT8fcJZ4g85a6RDzWEBv5SgiXpACj2T2sJctzyvWtxPgWOqKoc+j0ZNxtYVakCTG+DNyr+zYWRTHFsVSvdWaCDtd4rEdeHB7uBYQ5fp6d/l274st2xbpsDgjLnwQWun8V+sU6XwdUtazRk4r5vk9xnJ0R+aRWjIunBGdJ511Q8OVABJwmX975VAi9ENsXNcnVCF2Px+Q60PWw7d0V0v8zxZw2J9ybT7PLZls2blwUulXRN2PKtILvmrjtorcGjFEs7sB3DNztuj2JqkaHY8YTAO+BKhCOoWZMop9YCp1lydxyRok8y5141lnekcCCNVVeJIsNhVfYKldkDbcCXDDMgLzQBjqeAcSaugrz9tG0OGQAN49+7lPyFso1RuknkR/Fhp6aLPjVbHkkJXVnr9DctnpUgaylqQr9eFwIx4/ZpJG2/dDGEOxsd0BIXyJPNIDwl35j0O6lQN5X0+4klNl9Xc1kabnNxjiYafuyVY5zLzbXEQr/AhYzTXxXop4ViIyi2b+NvTpsaBJq60eq1d3L+7TeN/79PkkIsC+gUXh8M4zn/4cG",
+    "expiration": "2026-05-22T00:53:32.000Z"
+  },
+  "name": "catalogo-equipamentos",
+  "path": "/home/ubuntu/catalogo-equipamentos",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "bDCWXmhQHt9u92ZJjXzTeq",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "JWT_SECRET": "RWto2kdYBog379LJRiKruD",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "Lucas Guidorizzi",
+    "OWNER_OPEN_ID": "cCKE2m6LhPLM5eoo4TnJRE",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "9d113847-3764-4719-98ae-474fb6e9c37b",
+    "VITE_APP_ID": "fHsedzar2C5zRfxneoKLZA",
+    "VITE_APP_LOGO": "",
+    "VITE_APP_TITLE": "Catálogo de Equipamentos",
+    "VITE_FRONTEND_FORGE_API_KEY": "UX3ignVGhLouvQbQkKnKqp",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im"
+  },
+  "template_id": "web-db-user",
+  "test_command": "pnpm test"
+}
