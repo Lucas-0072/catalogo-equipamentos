@@ -19,3 +19,7 @@
 - [x] Desenvolver frontend: página Admin para gerenciar fornecedores
 - [x] Hook useUndoRedo com atalhos Ctrl+Z / Ctrl+Y
 - [x] Importar 5.689 equipamentos do Excel para o banco de dados
+- [x] Exibir grupos com código + referência real do arquivo (ex: 700 - ESTACOES-MP)
+- [x] Exibir subgrupos com código numérico real do arquivo (ex: 701, 702...)
+- [x] Atualizar nomes de grupos/subgrupos no banco com os valores reais
+- [x] Melhorar barra de busca com filtro dedicado por nome e por código

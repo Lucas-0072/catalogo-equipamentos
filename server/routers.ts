@@ -77,6 +77,8 @@ export const appRouter = router({
         page: z.number().default(1),
         pageSize: z.number().default(20),
         search: z.string().optional(),
+        searchNome: z.string().optional(),
+        searchCodigo: z.string().optional(),
         grupo: z.string().optional(),
         subgrupo: z.string().optional(),
       }))
@@ -84,16 +86,30 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
-        const { page, pageSize, search, grupo, subgrupo } = input;
+        const { page, pageSize, search, searchNome, searchCodigo, grupo, subgrupo } = input;
         const offset = (page - 1) * pageSize;
 
         const conditions = [];
+        // Busca combinada legada
         if (search) {
           conditions.push(
             or(
               like(equipamentos.descricao, `%${search}%`),
               like(equipamentos.codigo, `%${search}%`),
               like(equipamentos.referencia, `%${search}%`)
+            )
+          );
+        }
+        // Busca por nome/descrição
+        if (searchNome) {
+          conditions.push(like(equipamentos.descricao, `%${searchNome}%`));
+        }
+        // Busca por código
+        if (searchCodigo) {
+          conditions.push(
+            or(
+              like(equipamentos.codigo, `%${searchCodigo}%`),
+              like(equipamentos.referencia, `%${searchCodigo}%`)
             )
           );
         }
