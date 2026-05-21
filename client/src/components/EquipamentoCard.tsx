@@ -70,9 +70,9 @@ export default function EquipamentoCard({ equipamento, onDeleted, onUpdated }: P
           (e.currentTarget as HTMLElement).style.background = "oklch(0.14 0 0)";
         }}
       >
-        {/* Botões de ação — aparecem ao hover */}
+        {/* Botões de ação — sempre visíveis no mobile, hover no desktop */}
         <div
-          className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 transition-opacity"
         >
           {/* Editar */}
           <button

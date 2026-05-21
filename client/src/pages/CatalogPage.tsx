@@ -3,36 +3,144 @@ import { useUndoRedo } from "../hooks/useUndoRedo";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import EquipamentoCard from "../components/EquipamentoCard";
-import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X, Hash, FileText } from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X, Hash, FileText, SlidersHorizontal } from "lucide-react";
+
+// ── Componentes auxiliares ──────────────────────────────────────────────────
+
+function FilterBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all"
+      style={{
+        background: active ? "oklch(0.85 0.18 95)" : "oklch(0.16 0 0)",
+        color: active ? "oklch(0.08 0 0)" : "oklch(0.70 0 0)",
+        border: `1px solid ${active ? "oklch(0.85 0.18 95)" : "oklch(0.24 0 0)"}`,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ActiveTag({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+      style={{
+        background: "oklch(0.85 0.18 95 / 0.15)",
+        color: "oklch(0.85 0.18 95)",
+        border: "1px solid oklch(0.85 0.18 95 / 0.35)",
+      }}
+    >
+      {label}
+      <button onClick={onRemove} className="opacity-70 hover:opacity-100 transition-opacity">
+        <X size={10} />
+      </button>
+    </span>
+  );
+}
+
+// ── Painel de filtros (usado no desktop sidebar e no drawer mobile) ──────────
+
+function FilterPanel({
+  grupos, subgrupos, selectedGrupo, selectedSubgrupo,
+  hasFilters, onGrupoChange, onSubgrupoChange, onClearFilters,
+  onClose,
+}: {
+  grupos: any[]; subgrupos: any[];
+  selectedGrupo: string; selectedSubgrupo: string;
+  hasFilters: boolean;
+  onGrupoChange: (g: string) => void;
+  onSubgrupoChange: (s: string) => void;
+  onClearFilters: () => void;
+  onClose?: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "oklch(0.85 0.18 95)" }}>
+          <Filter size={14} /> Filtros
+        </h3>
+        <div className="flex items-center gap-2">
+          {hasFilters && (
+            <button
+              onClick={onClearFilters}
+              className="text-xs flex items-center gap-1 transition-colors"
+              style={{ color: "oklch(0.65 0 0)" }}
+            >
+              <X size={10} /> Limpar
+            </button>
+          )}
+          {onClose && (
+            <button onClick={onClose} className="p-1 rounded-md" style={{ color: "oklch(0.55 0 0)" }}>
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Grupos */}
+      <div>
+        <p className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: "oklch(0.55 0 0)" }}>
+          Grupo
+        </p>
+        <div className="space-y-1">
+          <FilterBtn label="Todos os grupos" active={!selectedGrupo} onClick={() => { onGrupoChange(""); onClose?.(); }} />
+          {grupos?.map(g => (
+            <FilterBtn
+              key={g.grupo}
+              label={`${g.grupo} — ${g.grupoNome}`}
+              active={selectedGrupo === g.grupo}
+              onClick={() => { onGrupoChange(g.grupo!); onClose?.(); }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Subgrupos */}
+      {subgrupos && subgrupos.length > 0 && (
+        <div>
+          <p className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: "oklch(0.55 0 0)" }}>
+            Subgrupo
+          </p>
+          <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+            <FilterBtn label="Todos" active={!selectedSubgrupo} onClick={() => { onSubgrupoChange(""); onClose?.(); }} />
+            {subgrupos.map(s => (
+              <FilterBtn
+                key={s.subgrupo}
+                label={s.subgrupoNome || s.subgrupo || ""}
+                active={selectedSubgrupo === s.subgrupo}
+                onClick={() => { onSubgrupoChange(s.subgrupo!); onClose?.(); }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Página principal ────────────────────────────────────────────────────────
 
 export default function CatalogPage() {
   const [page, setPage] = useState(1);
-
-  // Filtros de busca separados (aplicados)
   const [searchNome, setSearchNome] = useState("");
   const [searchCodigo, setSearchCodigo] = useState("");
-
-  // Inputs controlados (digitação)
   const [searchNomeInput, setSearchNomeInput] = useState("");
   const [searchCodigoInput, setSearchCodigoInput] = useState("");
-
-  // Filtros de categoria
   const [selectedGrupo, setSelectedGrupo] = useState("");
   const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const { canUndo, canRedo, undo, redo } = useUndoRedo();
   const utils = trpc.useUtils();
-
   const pageSize = 24;
 
   const { data: grupos } = trpc.equipamentos.grupos.useQuery();
-  const { data: subgrupos } = trpc.equipamentos.subgrupos.useQuery({
-    grupo: selectedGrupo || undefined,
-  });
-
+  const { data: subgrupos } = trpc.equipamentos.subgrupos.useQuery({ grupo: selectedGrupo || undefined });
   const { data, isLoading } = trpc.equipamentos.list.useQuery({
-    page,
-    pageSize,
+    page, pageSize,
     searchNome: searchNome || undefined,
     searchCodigo: searchCodigo || undefined,
     grupo: selectedGrupo || undefined,
@@ -45,58 +153,40 @@ export default function CatalogPage() {
     setPage(1);
   }, [searchNomeInput, searchCodigoInput]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") applySearch();
-  };
+  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter") applySearch(); };
 
-  const handleGrupoChange = (g: string) => {
-    setSelectedGrupo(g);
-    setSelectedSubgrupo("");
-    setPage(1);
-  };
-
-  const handleSubgrupoChange = (s: string) => {
-    setSelectedSubgrupo(s);
-    setPage(1);
-  };
+  const handleGrupoChange = (g: string) => { setSelectedGrupo(g); setSelectedSubgrupo(""); setPage(1); };
+  const handleSubgrupoChange = (s: string) => { setSelectedSubgrupo(s); setPage(1); };
 
   const clearFilters = () => {
-    setSearchNome("");
-    setSearchCodigo("");
-    setSearchNomeInput("");
-    setSearchCodigoInput("");
-    setSelectedGrupo("");
-    setSelectedSubgrupo("");
+    setSearchNome(""); setSearchCodigo("");
+    setSearchNomeInput(""); setSearchCodigoInput("");
+    setSelectedGrupo(""); setSelectedSubgrupo("");
     setPage(1);
   };
 
-  const hasFilters = searchNome || searchCodigo || selectedGrupo || selectedSubgrupo;
+  const hasFilters = !!(searchNome || searchCodigo || selectedGrupo || selectedSubgrupo);
 
   return (
     <div className="min-h-screen" style={{ background: "oklch(0.10 0 0)" }}>
       <Header canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo} />
 
       {/* Hero / Busca */}
-      <div className="border-b py-8 px-4" style={{ background: "oklch(0.12 0 0)", borderColor: "oklch(0.20 0 0)" }}>
+      <div className="border-b py-5 px-4" style={{ background: "oklch(0.12 0 0)", borderColor: "oklch(0.20 0 0)" }}>
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold mb-1" style={{ color: "oklch(0.85 0.18 95)" }}>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: "oklch(0.85 0.18 95)" }}>
             Catálogo de Equipamentos
           </h2>
-          <p className="text-sm mb-6" style={{ color: "oklch(0.60 0 0)" }}>
+          <p className="text-sm mb-4" style={{ color: "oklch(0.60 0 0)" }}>
             {data?.total !== undefined
               ? `${data.total.toLocaleString("pt-BR")} equipamentos encontrados`
               : "Carregando..."}
           </p>
 
-          {/* Dois campos de busca lado a lado */}
-          <div className="flex flex-col sm:flex-row gap-3 max-w-3xl">
-            {/* Busca por nome/descrição */}
+          {/* Campos de busca */}
+          <div className="flex flex-col sm:flex-row gap-2 max-w-3xl">
             <div className="flex-1 relative">
-              <FileText
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: "oklch(0.55 0 0)" }}
-              />
+              <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "oklch(0.55 0 0)" }} />
               <input
                 type="text"
                 placeholder="Buscar por nome / descrição..."
@@ -104,43 +194,28 @@ export default function CatalogPage() {
                 onChange={e => setSearchNomeInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: "oklch(0.18 0 0)",
-                  border: "1px solid oklch(0.28 0 0)",
-                  color: "oklch(0.90 0 0)",
-                }}
+                style={{ background: "oklch(0.18 0 0)", border: "1px solid oklch(0.28 0 0)", color: "oklch(0.90 0 0)" }}
                 onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
                 onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
               />
             </div>
-
-            {/* Busca por código */}
             <div className="flex-1 relative">
-              <Hash
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: "oklch(0.55 0 0)" }}
-              />
+              <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "oklch(0.55 0 0)" }} />
               <input
                 type="text"
-                placeholder="Buscar por código (ex: 701001)..."
+                placeholder="Buscar por código..."
                 value={searchCodigoInput}
                 onChange={e => setSearchCodigoInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: "oklch(0.18 0 0)",
-                  border: "1px solid oklch(0.28 0 0)",
-                  color: "oklch(0.90 0 0)",
-                }}
+                style={{ background: "oklch(0.18 0 0)", border: "1px solid oklch(0.28 0 0)", color: "oklch(0.90 0 0)" }}
                 onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
                 onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
               />
             </div>
-
             <button
               onClick={applySearch}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0"
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 flex-shrink-0"
               style={{ background: "oklch(0.85 0.18 95)", color: "oklch(0.08 0 0)" }}
               onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.70 0.18 95)")}
               onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.85 0.18 95)")}
@@ -151,81 +226,90 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
-        {/* Sidebar de filtros */}
-        <aside className="w-64 flex-shrink-0">
+      {/* Barra mobile de filtros */}
+      <div className="md:hidden px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: "oklch(0.20 0 0)" }}>
+        <button
+          onClick={() => setFilterDrawerOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium flex-1 justify-center transition-colors"
+          style={{
+            background: hasFilters ? "oklch(0.85 0.18 95 / 0.15)" : "oklch(0.16 0 0)",
+            border: `1px solid ${hasFilters ? "oklch(0.85 0.18 95 / 0.40)" : "oklch(0.24 0 0)"}`,
+            color: hasFilters ? "oklch(0.85 0.18 95)" : "oklch(0.70 0 0)",
+          }}
+        >
+          <SlidersHorizontal size={15} />
+          Filtros
+          {hasFilters && (
+            <span
+              className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
+              style={{ background: "oklch(0.85 0.18 95)", color: "oklch(0.08 0 0)" }}
+            >
+              {[searchNome, searchCodigo, selectedGrupo, selectedSubgrupo].filter(Boolean).length}
+            </span>
+          )}
+        </button>
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors"
+            style={{ background: "oklch(0.16 0 0)", border: "1px solid oklch(0.24 0 0)", color: "oklch(0.55 0 0)" }}
+          >
+            <X size={14} /> Limpar
+          </button>
+        )}
+      </div>
+
+      {/* Drawer de filtros mobile */}
+      {filterDrawerOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="md:hidden fixed inset-0 z-40"
+            style={{ background: "oklch(0 0 0 / 0.60)" }}
+            onClick={() => setFilterDrawerOpen(false)}
+          />
+          {/* Drawer */}
+          <div
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-y-auto"
+            style={{
+              background: "oklch(0.12 0 0)",
+              border: "1px solid oklch(0.85 0.18 95 / 0.25)",
+              maxHeight: "80vh",
+              padding: "20px 16px 32px",
+            }}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "oklch(0.30 0 0)" }} />
+            <FilterPanel
+              grupos={grupos ?? []}
+              subgrupos={subgrupos ?? []}
+              selectedGrupo={selectedGrupo}
+              selectedSubgrupo={selectedSubgrupo}
+              hasFilters={hasFilters}
+              onGrupoChange={handleGrupoChange}
+              onSubgrupoChange={handleSubgrupoChange}
+              onClearFilters={clearFilters}
+              onClose={() => setFilterDrawerOpen(false)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Layout principal */}
+      <div className="max-w-7xl mx-auto px-4 py-5 flex gap-6">
+
+        {/* Sidebar desktop */}
+        <aside className="hidden md:block w-60 flex-shrink-0">
           <div className="sticky top-20">
-            <div className="flex items-center justify-between mb-3">
-              <h3
-                className="text-sm font-semibold flex items-center gap-2"
-                style={{ color: "oklch(0.85 0.18 95)" }}
-              >
-                <Filter size={14} /> Filtros
-              </h3>
-              {hasFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-xs flex items-center gap-1 transition-colors"
-                  style={{ color: "oklch(0.65 0 0)" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "oklch(0.85 0.18 95)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.65 0 0)")}
-                >
-                  <X size={10} /> Limpar tudo
-                </button>
-              )}
-            </div>
-
-            {/* Grupos */}
-            <div className="mb-5">
-              <p
-                className="text-xs font-bold mb-2 uppercase tracking-wider"
-                style={{ color: "oklch(0.55 0 0)" }}
-              >
-                Grupo
-              </p>
-              <div className="space-y-1">
-                <FilterBtn
-                  label="Todos os grupos"
-                  active={!selectedGrupo}
-                  onClick={() => handleGrupoChange("")}
-                />
-                {grupos?.map(g => (
-                  <FilterBtn
-                    key={g.grupo}
-                    label={`${g.grupo} — ${g.grupoNome}`}
-                    active={selectedGrupo === g.grupo}
-                    onClick={() => handleGrupoChange(g.grupo!)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Subgrupos */}
-            {subgrupos && subgrupos.length > 0 && (
-              <div>
-                <p
-                  className="text-xs font-bold mb-2 uppercase tracking-wider"
-                  style={{ color: "oklch(0.55 0 0)" }}
-                >
-                  Subgrupo
-                </p>
-                <div className="space-y-1 max-h-96 overflow-y-auto pr-1">
-                  <FilterBtn
-                    label="Todos"
-                    active={!selectedSubgrupo}
-                    onClick={() => handleSubgrupoChange("")}
-                  />
-                  {subgrupos.map(s => (
-                    <FilterBtn
-                      key={s.subgrupo}
-                      label={s.subgrupoNome || s.subgrupo || ""}
-                      active={selectedSubgrupo === s.subgrupo}
-                      onClick={() => handleSubgrupoChange(s.subgrupo!)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            <FilterPanel
+              grupos={grupos ?? []}
+              subgrupos={subgrupos ?? []}
+              selectedGrupo={selectedGrupo}
+              selectedSubgrupo={selectedSubgrupo}
+              hasFilters={hasFilters}
+              onGrupoChange={handleGrupoChange}
+              onSubgrupoChange={handleSubgrupoChange}
+              onClearFilters={clearFilters}
+            />
           </div>
         </aside>
 
@@ -235,24 +319,10 @@ export default function CatalogPage() {
           {hasFilters && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               {searchNome && (
-                <ActiveTag
-                  label={`Nome: "${searchNome}"`}
-                  onRemove={() => {
-                    setSearchNome("");
-                    setSearchNomeInput("");
-                    setPage(1);
-                  }}
-                />
+                <ActiveTag label={`Nome: "${searchNome}"`} onRemove={() => { setSearchNome(""); setSearchNomeInput(""); setPage(1); }} />
               )}
               {searchCodigo && (
-                <ActiveTag
-                  label={`Código: "${searchCodigo}"`}
-                  onRemove={() => {
-                    setSearchCodigo("");
-                    setSearchCodigoInput("");
-                    setPage(1);
-                  }}
-                />
+                <ActiveTag label={`Código: "${searchCodigo}"`} onRemove={() => { setSearchCodigo(""); setSearchCodigoInput(""); setPage(1); }} />
               )}
               {selectedGrupo && (
                 <ActiveTag
@@ -271,11 +341,7 @@ export default function CatalogPage() {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2
-                size={32}
-                className="animate-spin"
-                style={{ color: "oklch(0.85 0.18 95)" }}
-              />
+              <Loader2 size={32} className="animate-spin" style={{ color: "oklch(0.85 0.18 95)" }} />
             </div>
           ) : data?.items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -291,58 +357,53 @@ export default function CatalogPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* Grid responsivo: 1 col mobile, 2 sm, 3 lg, 4 xl */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {data?.items.map((eq: any) => (
                   <EquipamentoCard
                     key={eq.id}
                     equipamento={eq}
-                    onDeleted={(_id) => {
-                      // Invalida a lista para recarregar sem o item excluído
-                      utils.equipamentos.list.invalidate();
-                    }}
-                    onUpdated={() => {
-                      utils.equipamentos.list.invalidate();
-                    }}
+                    onDeleted={() => utils.equipamentos.list.invalidate()}
+                    onUpdated={() => utils.equipamentos.list.invalidate()}
                   />
                 ))}
               </div>
 
-              {/* Paginação */}
+              {/* Paginação responsiva */}
               {data && data.totalPages > 1 && (
                 <div
-                  className="flex items-center justify-between mt-8 pt-6 border-t"
+                  className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 pt-6 border-t"
                   style={{ borderColor: "oklch(0.20 0 0)" }}
                 >
-                  <p className="text-sm" style={{ color: "oklch(0.55 0 0)" }}>
-                    Página {data.page} de {data.totalPages} —{" "}
-                    {data.total.toLocaleString("pt-BR")} itens
+                  <p className="text-sm order-2 sm:order-1" style={{ color: "oklch(0.55 0 0)" }}>
+                    Página {data.page} de {data.totalPages} — {data.total.toLocaleString("pt-BR")} itens
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 order-1 sm:order-2">
                     <button
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                      className="p-2.5 rounded-lg transition-colors disabled:opacity-30"
                       style={{ background: "oklch(0.18 0 0)", color: "oklch(0.75 0 0)" }}
                     >
                       <ChevronLeft size={16} />
                     </button>
 
-                    {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+                    {/* Mobile: mostra só 3 páginas */}
+                    {Array.from({ length: Math.min(window.innerWidth < 640 ? 3 : 5, data.totalPages) }, (_, i) => {
+                      const maxShow = window.innerWidth < 640 ? 3 : 5;
                       let p: number;
-                      if (data.totalPages <= 5) p = i + 1;
-                      else if (page <= 3) p = i + 1;
-                      else if (page >= data.totalPages - 2) p = data.totalPages - 4 + i;
-                      else p = page - 2 + i;
+                      if (data.totalPages <= maxShow) p = i + 1;
+                      else if (page <= Math.floor(maxShow / 2) + 1) p = i + 1;
+                      else if (page >= data.totalPages - Math.floor(maxShow / 2)) p = data.totalPages - maxShow + 1 + i;
+                      else p = page - Math.floor(maxShow / 2) + i;
                       return (
                         <button
                           key={p}
                           onClick={() => setPage(p)}
-                          className="w-8 h-8 rounded-lg text-sm font-medium transition-colors"
+                          className="w-9 h-9 rounded-lg text-sm font-medium transition-colors"
                           style={{
-                            background:
-                              page === p ? "oklch(0.85 0.18 95)" : "oklch(0.18 0 0)",
-                            color:
-                              page === p ? "oklch(0.08 0 0)" : "oklch(0.65 0 0)",
+                            background: page === p ? "oklch(0.85 0.18 95)" : "oklch(0.18 0 0)",
+                            color: page === p ? "oklch(0.08 0 0)" : "oklch(0.65 0 0)",
                           }}
                         >
                           {p}
@@ -353,7 +414,7 @@ export default function CatalogPage() {
                     <button
                       onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
                       disabled={page === data.totalPages}
-                      className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                      className="p-2.5 rounded-lg transition-colors disabled:opacity-30"
                       style={{ background: "oklch(0.18 0 0)", color: "oklch(0.75 0 0)" }}
                     >
                       <ChevronRight size={16} />
@@ -366,70 +427,5 @@ export default function CatalogPage() {
         </main>
       </div>
     </div>
-  );
-}
-
-// ── Componentes auxiliares ────────────────────────────────────────────────────
-
-function FilterBtn({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left text-xs px-3 py-2 rounded-lg transition-all"
-      style={{
-        background: active ? "oklch(0.85 0.18 95 / 0.15)" : "transparent",
-        color: active ? "oklch(0.85 0.18 95)" : "oklch(0.65 0 0)",
-        border: active
-          ? "1px solid oklch(0.85 0.18 95 / 0.35)"
-          : "1px solid transparent",
-        fontWeight: active ? 600 : 400,
-      }}
-      onMouseEnter={e => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background = "oklch(0.18 0 0)";
-          (e.currentTarget as HTMLElement).style.color = "oklch(0.80 0 0)";
-        }
-      }}
-      onMouseLeave={e => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background = "transparent";
-          (e.currentTarget as HTMLElement).style.color = "oklch(0.65 0 0)";
-        }
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
-function ActiveTag({
-  label,
-  onRemove,
-}: {
-  label: string;
-  onRemove: () => void;
-}) {
-  return (
-    <span
-      className="text-xs px-3 py-1 rounded-full flex items-center gap-1.5"
-      style={{
-        background: "oklch(0.85 0.18 95 / 0.15)",
-        color: "oklch(0.85 0.18 95)",
-        border: "1px solid oklch(0.85 0.18 95 / 0.30)",
-      }}
-    >
-      {label}
-      <button onClick={onRemove} className="hover:opacity-70 transition-opacity">
-        <X size={10} />
-      </button>
-    </span>
   );
 }

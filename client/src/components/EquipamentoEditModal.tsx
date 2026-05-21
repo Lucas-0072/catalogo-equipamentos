@@ -119,7 +119,7 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl flex flex-col"
+        className="w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl flex flex-col"
         style={{ background: "oklch(0.12 0 0)", border: "1px solid oklch(0.85 0.18 95 / 0.30)" }}
       >
         {/* Header */}
@@ -145,7 +145,7 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
         </div>
 
         {/* Corpo */}
-        <div className="p-6 flex flex-col gap-5">
+        <div className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
 
           {/* Imagem */}
           <div>

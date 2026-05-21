@@ -30,3 +30,9 @@
 - [x] Adicionar botão Excluir no card do equipamento (confirmação antes de deletar)
 - [x] Criar endpoint de update e delete no backend para equipamentos
 - [x] Integrar undo/redo com as ações de editar e excluir
+- [x] Header responsivo com menu hamburguer no mobile
+- [x] Sidebar de filtros como drawer/gaveta no mobile
+- [x] Grid de cards adaptado para 1 coluna no mobile
+- [x] Botões de editar/excluir acessíveis por toque no mobile (sem depender de hover)
+- [x] Modal de edição com scroll adequado no mobile
+- [x] Paginação compacta para telas pequenas
