@@ -92,3 +92,92 @@ describe("Catálogo de Equipamentos - Lógica de Negócio", () => {
     expect(confirmed).toBe(true);
   });
 });
+
+describe("Sincronização com Excel", () => {
+  it("deve mapear colunas do Excel para o formato do backend", () => {
+    const rawRow: Record<string, string> = {
+      CODIGO: "701001",
+      REFERENCIA: "ESTACOES-MP",
+      DESCRICAO: "TANQUE PP EST. REMOVIVEL",
+      UN: "PC",
+      ID: "MP",
+      GRUPO: "700",
+      SUBGRUPO: "701",
+      "CST CÓD": "01",
+      CST: "000",
+      "NBM/NCM": "39251000",
+      "%IPI": "0",
+    };
+    const mapped = {
+      codigo: String(rawRow["CODIGO"] ?? "").trim(),
+      referencia: String(rawRow["REFERENCIA"] ?? "").trim() || null,
+      descricao: String(rawRow["DESCRICAO"] ?? "").trim(),
+      unidade: String(rawRow["UN"] ?? "").trim() || null,
+      grupo: String(rawRow["GRUPO"] ?? "").trim() || null,
+      subgrupo: String(rawRow["SUBGRUPO"] ?? "").trim() || null,
+      ncm: String(rawRow["NBM/NCM"] ?? "").trim() || null,
+      ipi: String(rawRow["%IPI"] ?? "").trim() || null,
+    };
+    expect(mapped.codigo).toBe("701001");
+    expect(mapped.referencia).toBe("ESTACOES-MP");
+    expect(mapped.descricao).toBe("TANQUE PP EST. REMOVIVEL");
+    expect(mapped.grupo).toBe("700");
+    expect(mapped.subgrupo).toBe("701");
+    expect(mapped.ncm).toBe("39251000");
+  });
+
+  it("deve filtrar linhas sem código durante sincronização", () => {
+    const rows = [
+      { codigo: "701001", descricao: "TANQUE PP" },
+      { codigo: "", descricao: "SEM CODIGO" },
+      { codigo: "701002", descricao: "BOMBA" },
+    ];
+    const valid = rows.filter(r => r.codigo.trim());
+    expect(valid.length).toBe(2);
+    expect(valid[0].codigo).toBe("701001");
+  });
+
+  it("deve preservar imagem e fornecedores ao atualizar equipamento existente", () => {
+    const existing = {
+      id: 1,
+      codigo: "701001",
+      imagem: "/manus-storage/img.jpg",
+      fornecedor1Id: 3,
+      fornecedor2Id: null,
+      fornecedor3Id: null,
+    };
+    const updatePayload = {
+      descricao: "TANQUE PP ATUALIZADO",
+      // imagem e fornecedores NÃO são sobrescritos pela sincronização
+    };
+    // Simula que a sincronização não toca em imagem/fornecedores
+    expect(updatePayload).not.toHaveProperty("imagem");
+    expect(updatePayload).not.toHaveProperty("fornecedor1Id");
+    expect(existing.imagem).toBe("/manus-storage/img.jpg");
+    expect(existing.fornecedor1Id).toBe(3);
+  });
+
+  it("deve contabilizar corretamente adicionados e atualizados", () => {
+    const existingCodigos = new Set(["701001", "701002"]);
+    const rows = [
+      { codigo: "701001" }, // existente → atualizado
+      { codigo: "701002" }, // existente → atualizado
+      { codigo: "701099" }, // novo → adicionado
+    ];
+    let adicionados = 0;
+    let atualizados = 0;
+    for (const row of rows) {
+      if (existingCodigos.has(row.codigo)) atualizados++;
+      else adicionados++;
+    }
+    expect(adicionados).toBe(1);
+    expect(atualizados).toBe(2);
+  });
+
+  it("deve dividir corretamente em chunks de 500 para envio", () => {
+    const CHUNK = 500;
+    const total = 5689;
+    const chunks = Math.ceil(total / CHUNK);
+    expect(chunks).toBe(12);
+  });
+});

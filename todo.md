@@ -36,3 +36,7 @@
 - [x] Botões de editar/excluir acessíveis por toque no mobile (sem depender de hover)
 - [x] Modal de edição com scroll adequado no mobile
 - [x] Paginação compacta para telas pequenas
+- [x] Analisar colunas do Excel e mapear para schema do banco
+- [x] Criar endpoint de upload e sincronização do Excel no backend (upsert por código)
+- [x] Criar interface de upload da planilha no painel Admin com barra de progresso
+- [x] Exibir relatório pós-sincronização (itens adicionados, atualizados, removidos)

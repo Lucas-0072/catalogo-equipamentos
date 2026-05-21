@@ -247,6 +247,100 @@ export const appRouter = router({
         return result.filter((r: { subgrupo: string | null; subgrupoNome: string | null; grupo: string | null }) => r.subgrupo);
       }),
 
+    // ── Sincronização com planilha Excel ──────────────────────────────────
+    syncExcel: protectedProcedure
+      .input(z.object({
+        // Dados da planilha como array de objetos
+        rows: z.array(z.object({
+          codigo: z.string(),
+          referencia: z.string().optional().nullable(),
+          descricao: z.string(),
+          unidade: z.string().optional().nullable(),
+          idTipo: z.string().optional().nullable(),
+          grupo: z.string().optional().nullable(),
+          subgrupo: z.string().optional().nullable(),
+          cstCod: z.string().optional().nullable(),
+          cst: z.string().optional().nullable(),
+          ncm: z.string().optional().nullable(),
+          ipi: z.string().optional().nullable(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        let adicionados = 0;
+        let atualizados = 0;
+        let ignorados = 0;
+
+        // Buscar todos os códigos existentes de uma vez
+        const existingRows = await db
+          .select({ id: equipamentos.id, codigo: equipamentos.codigo, imagem: equipamentos.imagem,
+            fornecedor1Id: equipamentos.fornecedor1Id, fornecedor2Id: equipamentos.fornecedor2Id, fornecedor3Id: equipamentos.fornecedor3Id })
+          .from(equipamentos);
+
+        const existingMap = new Map<string, { id: number; imagem: string | null; fornecedor1Id: number | null; fornecedor2Id: number | null; fornecedor3Id: number | null }>();
+        for (const row of existingRows) {
+          if (row.codigo) existingMap.set(row.codigo.trim(), row as any);
+        }
+
+        // Processar em lotes de 100
+        const BATCH = 100;
+        for (let i = 0; i < input.rows.length; i += BATCH) {
+          const batch = input.rows.slice(i, i + BATCH);
+          for (const row of batch) {
+            const codigo = row.codigo?.trim();
+            if (!codigo) { ignorados++; continue; }
+
+            const grupoStr = row.grupo ? String(row.grupo).trim() : null;
+            const subgrupoStr = row.subgrupo ? String(row.subgrupo).trim() : null;
+
+            // Montar nome do grupo/subgrupo a partir da referência
+            const refStr = row.referencia ? String(row.referencia).trim() : null;
+            const grupoNome = refStr || grupoStr;
+            const subgrupoNome = subgrupoStr ? `${subgrupoStr} - ${refStr ?? grupoStr ?? ""}` : null;
+
+            const ncmClean = row.ncm && String(row.ncm) !== "nan" && String(row.ncm) !== "None" ? String(row.ncm).trim() : null;
+            const ipiClean = row.ipi && String(row.ipi) !== "nan" && String(row.ipi) !== "0" ? String(row.ipi).trim() : null;
+
+            const existing = existingMap.get(codigo);
+
+            if (existing) {
+              // Atualizar preservando imagem e fornecedores
+              await db.update(equipamentos).set({
+                descricao: row.descricao?.trim() || "",
+                referencia: refStr,
+                unidade: row.unidade?.trim() || null,
+                grupo: grupoStr,
+                grupoNome: grupoNome,
+                subgrupo: subgrupoStr,
+                subgrupoNome: subgrupoNome,
+                ncm: ncmClean,
+                ipi: ipiClean,
+              }).where(eq(equipamentos.id, existing.id));
+              atualizados++;
+            } else {
+              // Inserir novo
+              await db.insert(equipamentos).values({
+                codigo,
+                descricao: row.descricao?.trim() || "",
+                referencia: refStr,
+                unidade: row.unidade?.trim() || null,
+                grupo: grupoStr,
+                grupoNome: grupoNome,
+                subgrupo: subgrupoStr,
+                subgrupoNome: subgrupoNome,
+                ncm: ncmClean,
+                ipi: ipiClean,
+              });
+              adicionados++;
+            }
+          }
+        }
+
+        return { adicionados, atualizados, ignorados, total: input.rows.length };
+      }),
+
     uploadImagem: protectedProcedure
       .input(z.object({
         id: z.number(),
