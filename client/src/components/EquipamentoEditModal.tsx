@@ -33,7 +33,6 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
   const [saving, setSaving] = useState(false);
 
   const updateMutation = trpc.equipamentos.update.useMutation();
-  const uploadMutation = trpc.equipamentos.uploadImagem.useMutation();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,25 +46,24 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Upload de imagem se houver nova
+      // Upload de imagem via multipart/form-data (suporta qualquer tamanho)
       if (imageFile) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(",")[1]);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(imageFile);
+        const formData = new FormData();
+        formData.append("imagem", imageFile);
+        const resp = await fetch(`/api/equipamentos/${equipamento.id}/imagem`, {
+          method: "POST",
+          body: formData,
         });
-        await uploadMutation.mutateAsync({
-          id: equipamento.id,
-          imageBase64: base64,
-          mimeType: imageFile.type,
-        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: resp.statusText }));
+          throw new Error(err.error ?? "Erro no upload da imagem");
+        }
+        const { url } = await resp.json();
+        // Atualizar preview com URL real do storage
+        setImagePreview(url);
       }
 
-      // Atualizar dados
+      // Atualizar dados do equipamento
       await updateMutation.mutateAsync({
         id: equipamento.id,
         ...form,
@@ -77,8 +75,8 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
       toast.success("Equipamento atualizado com sucesso!");
       onSaved({ ...equipamento, ...form, imagem: imagePreview });
       onClose();
-    } catch {
-      toast.error("Erro ao salvar equipamento.");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao salvar equipamento.");
     } finally {
       setSaving(false);
     }

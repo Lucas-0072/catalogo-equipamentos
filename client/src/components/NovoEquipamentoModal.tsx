@@ -34,7 +34,6 @@ export default function NovoEquipamentoModal({ onClose, onCreated }: Props) {
   const { data: fornecedoresList } = trpc.fornecedores.list.useQuery();
 
   const createMutation = trpc.equipamentos.create.useMutation();
-  const uploadMutation = trpc.equipamentos.uploadImagem.useMutation();
 
   const [form, setForm] = useState({
     codigo: "",
@@ -100,20 +99,20 @@ export default function NovoEquipamentoModal({ onClose, onCreated }: Props) {
         fornecedor3Id: form.fornecedor3Id,
       });
 
-      // 2. Upload de imagem se houver
+      // 2. Upload de imagem via multipart/form-data se houver
       let imagemUrl: string | null = null;
       if (imageFile && result.id) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve((reader.result as string).split(",")[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(imageFile);
+        const formData = new FormData();
+        formData.append("imagem", imageFile);
+        const resp = await fetch(`/api/equipamentos/${result.id}/imagem`, {
+          method: "POST",
+          body: formData,
         });
-        const uploaded = await uploadMutation.mutateAsync({
-          id: result.id,
-          imageBase64: base64,
-          mimeType: imageFile.type,
-        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: resp.statusText }));
+          throw new Error(err.error ?? "Erro no upload da imagem");
+        }
+        const uploaded = await resp.json();
         imagemUrl = uploaded.url;
       }
 
