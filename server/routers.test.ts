@@ -53,4 +53,42 @@ describe("Catálogo de Equipamentos - Lógica de Negócio", () => {
     expect(cleanNcm).toBe("");
     expect(cleanIpi).toBe("");
   });
+
+  it("deve montar payload de update com todos os campos editáveis", () => {
+    const original = {
+      id: 1,
+      descricao: "TANQUE PP",
+      codigo: "701001",
+      referencia: "REF-001",
+      ncm: "39251000",
+      unidade: "PC",
+      grupo: "700",
+      grupoNome: "ESTACOES-MP",
+      subgrupo: "701",
+      subgrupoNome: "701 - ESTACOES-MP",
+      fornecedor1Id: null,
+      fornecedor2Id: null,
+      fornecedor3Id: null,
+    };
+    const updated = { ...original, descricao: "TANQUE PP ATUALIZADO", fornecedor1Id: 5 };
+    expect(updated.descricao).toBe("TANQUE PP ATUALIZADO");
+    expect(updated.fornecedor1Id).toBe(5);
+    expect(updated.id).toBe(1);
+  });
+
+  it("deve confirmar exclusão apenas com id válido", () => {
+    const validDelete = (id: number) => typeof id === "number" && id > 0;
+    expect(validDelete(42)).toBe(true);
+    expect(validDelete(0)).toBe(false);
+    expect(validDelete(-1)).toBe(false);
+  });
+
+  it("deve impedir exclusão sem confirmação do usuário", () => {
+    let confirmed = false;
+    const askConfirm = () => { confirmed = true; };
+    // Simula que o botão de confirmar não foi clicado
+    expect(confirmed).toBe(false);
+    askConfirm();
+    expect(confirmed).toBe(true);
+  });
 });

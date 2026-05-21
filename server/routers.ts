@@ -192,6 +192,15 @@ export const appRouter = router({
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
+        descricao: z.string().optional(),
+        codigo: z.string().optional(),
+        referencia: z.string().optional(),
+        ncm: z.string().optional().nullable(),
+        unidade: z.string().optional().nullable(),
+        grupo: z.string().optional().nullable(),
+        grupoNome: z.string().optional().nullable(),
+        subgrupo: z.string().optional().nullable(),
+        subgrupoNome: z.string().optional().nullable(),
         imagem: z.string().optional().nullable(),
         fornecedor1Id: z.number().optional().nullable(),
         fornecedor2Id: z.number().optional().nullable(),
@@ -202,6 +211,15 @@ export const appRouter = router({
         if (!db) throw new Error("Database not available");
         const { id, ...data } = input;
         await db.update(equipamentos).set(data).where(eq(equipamentos.id, id));
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        await db.delete(equipamentos).where(eq(equipamentos.id, input.id));
         return { success: true };
       }),
 

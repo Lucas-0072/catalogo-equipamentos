@@ -21,6 +21,7 @@ export default function CatalogPage() {
   const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
 
   const { canUndo, canRedo, undo, redo } = useUndoRedo();
+  const utils = trpc.useUtils();
 
   const pageSize = 24;
 
@@ -292,7 +293,17 @@ export default function CatalogPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {data?.items.map((eq: any) => (
-                  <EquipamentoCard key={eq.id} equipamento={eq} />
+                  <EquipamentoCard
+                    key={eq.id}
+                    equipamento={eq}
+                    onDeleted={(_id) => {
+                      // Invalida a lista para recarregar sem o item excluído
+                      utils.equipamentos.list.invalidate();
+                    }}
+                    onUpdated={() => {
+                      utils.equipamentos.list.invalidate();
+                    }}
+                  />
                 ))}
               </div>
 

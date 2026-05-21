@@ -26,3 +26,7 @@
 - [x] Adicionar botões Desfazer/Refazer visíveis no header com ícones e tooltips
 - [x] Configurar PWA (Service Worker + manifest.json) para acesso offline
 - [x] Implementar cache offline dos equipamentos via Service Worker
+- [x] Adicionar botão Editar no card do equipamento (modal com todos os campos editáveis)
+- [x] Adicionar botão Excluir no card do equipamento (confirmação antes de deletar)
+- [x] Criar endpoint de update e delete no backend para equipamentos
+- [x] Integrar undo/redo com as ações de editar e excluir
