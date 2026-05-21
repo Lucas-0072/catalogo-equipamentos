@@ -42,3 +42,6 @@
 - [x] Exibir relatório pós-sincronização (itens adicionados, atualizados, removidos)
 - [x] Criar botão "Novo Equipamento" no catálogo com modal de cadastro completo (todos os campos + imagem + até 3 fornecedores)
 - [x] Criar endpoint de criação de equipamento no backend
+- [x] Paginação aprimorada: ir para primeira/última página, campo "ir para página", seletor de itens por página (12/24/48/96)
+- [x] Indicador de progresso visual (ex: "Página 3 de 238 — 5.689 itens")
+- [x] Scroll automático ao topo ao trocar de página

@@ -3,7 +3,8 @@ import { useUndoRedo } from "../hooks/useUndoRedo";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import EquipamentoCard from "../components/EquipamentoCard";
-import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X, Hash, FileText, SlidersHorizontal, Plus } from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, X, Hash, FileText, SlidersHorizontal, Plus } from "lucide-react";
+import { useRef } from "react";
 import NovoEquipamentoModal from "../components/NovoEquipamentoModal";
 
 // ── Componentes auxiliares ──────────────────────────────────────────────────
@@ -135,9 +136,23 @@ export default function CatalogPage() {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [novoModalOpen, setNovoModalOpen] = useState(false);
 
+  const [pageSize, setPageSize] = useState(24);
+  const [goToPage, setGoToPage] = useState("");
+  const mainRef = useRef<HTMLDivElement>(null);
+
   const { canUndo, canRedo, undo, redo } = useUndoRedo();
   const utils = trpc.useUtils();
-  const pageSize = 24;
+
+  const scrollToTop = () => {
+    mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const goToPageNum = (p: number, total: number) => {
+    const clamped = Math.max(1, Math.min(p, total));
+    setPage(clamped);
+    setGoToPage("");
+    scrollToTop();
+  };
 
   const { data: grupos } = trpc.equipamentos.grupos.useQuery();
   const { data: subgrupos } = trpc.equipamentos.subgrupos.useQuery({ grupo: selectedGrupo || undefined });
@@ -153,6 +168,7 @@ export default function CatalogPage() {
     setSearchNome(searchNomeInput.trim());
     setSearchCodigo(searchCodigoInput.trim());
     setPage(1);
+    scrollToTop();
   }, [searchNomeInput, searchCodigoInput]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter") applySearch(); };
@@ -341,7 +357,7 @@ export default function CatalogPage() {
         </aside>
 
         {/* Grid de equipamentos */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0" ref={mainRef}>
           {/* Tags de filtros ativos */}
           {hasFilters && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -396,56 +412,193 @@ export default function CatalogPage() {
                 ))}
               </div>
 
-              {/* Paginação responsiva */}
+              {/* Paginação aprimorada */}
               {data && data.totalPages > 1 && (
                 <div
-                  className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 pt-6 border-t"
+                  className="mt-8 pt-6 border-t flex flex-col gap-4"
                   style={{ borderColor: "oklch(0.20 0 0)" }}
                 >
-                  <p className="text-sm order-2 sm:order-1" style={{ color: "oklch(0.55 0 0)" }}>
-                    Página {data.page} de {data.totalPages} — {data.total.toLocaleString("pt-BR")} itens
-                  </p>
-                  <div className="flex items-center gap-1.5 order-1 sm:order-2">
-                    <button
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="p-2.5 rounded-lg transition-colors disabled:opacity-30"
-                      style={{ background: "oklch(0.18 0 0)", color: "oklch(0.75 0 0)" }}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
+                  {/* Linha superior: info + seletor de itens por página */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-sm" style={{ color: "oklch(0.55 0 0)" }}>
+                      Mostrando{" "}
+                      <span style={{ color: "oklch(0.85 0.18 95)", fontWeight: 600 }}>
+                        {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, data.total)}
+                      </span>
+                      {" "}de{" "}
+                      <span style={{ color: "oklch(0.85 0.18 95)", fontWeight: 600 }}>
+                        {data.total.toLocaleString("pt-BR")}
+                      </span>
+                      {" "}equipamentos
+                    </p>
 
-                    {/* Mobile: mostra só 3 páginas */}
-                    {Array.from({ length: Math.min(window.innerWidth < 640 ? 3 : 5, data.totalPages) }, (_, i) => {
-                      const maxShow = window.innerWidth < 640 ? 3 : 5;
-                      let p: number;
-                      if (data.totalPages <= maxShow) p = i + 1;
-                      else if (page <= Math.floor(maxShow / 2) + 1) p = i + 1;
-                      else if (page >= data.totalPages - Math.floor(maxShow / 2)) p = data.totalPages - maxShow + 1 + i;
-                      else p = page - Math.floor(maxShow / 2) + i;
-                      return (
-                        <button
-                          key={p}
-                          onClick={() => setPage(p)}
-                          className="w-9 h-9 rounded-lg text-sm font-medium transition-colors"
-                          style={{
-                            background: page === p ? "oklch(0.85 0.18 95)" : "oklch(0.18 0 0)",
-                            color: page === p ? "oklch(0.08 0 0)" : "oklch(0.65 0 0)",
+                    {/* Seletor de itens por página */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs" style={{ color: "oklch(0.50 0 0)" }}>Itens por página:</span>
+                      <div className="flex gap-1">
+                        {[12, 24, 48, 96].map(size => (
+                          <button
+                            key={size}
+                            onClick={() => { setPageSize(size); setPage(1); scrollToTop(); }}
+                            className="px-2.5 py-1 rounded text-xs font-medium transition-colors"
+                            style={{
+                              background: pageSize === size ? "oklch(0.85 0.18 95)" : "oklch(0.18 0 0)",
+                              color: pageSize === size ? "oklch(0.08 0 0)" : "oklch(0.55 0 0)",
+                              border: `1px solid ${pageSize === size ? "oklch(0.85 0.18 95)" : "oklch(0.26 0 0)"}`,
+                            }}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barra de progresso */}
+                  <div className="w-full rounded-full overflow-hidden" style={{ height: 3, background: "oklch(0.20 0 0)" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(page / data.totalPages) * 100}%`,
+                        background: "oklch(0.85 0.18 95)",
+                      }}
+                    />
+                  </div>
+
+                  {/* Linha inferior: navegação */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+
+                    {/* Botões de navegação */}
+                    <div className="flex items-center gap-1">
+                      {/* Primeira página */}
+                      <button
+                        onClick={() => goToPageNum(1, data.totalPages)}
+                        disabled={page === 1}
+                        title="Primeira página"
+                        className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                        style={{ background: "oklch(0.18 0 0)", color: "oklch(0.65 0 0)" }}
+                        onMouseEnter={e => { if (page !== 1) e.currentTarget.style.color = "oklch(0.85 0.18 95)"; }}
+                        onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.65 0 0)")}
+                      >
+                        <ChevronsLeft size={16} />
+                      </button>
+
+                      {/* Página anterior */}
+                      <button
+                        onClick={() => goToPageNum(page - 1, data.totalPages)}
+                        disabled={page === 1}
+                        title="Página anterior"
+                        className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                        style={{ background: "oklch(0.18 0 0)", color: "oklch(0.65 0 0)" }}
+                        onMouseEnter={e => { if (page !== 1) e.currentTarget.style.color = "oklch(0.85 0.18 95)"; }}
+                        onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.65 0 0)")}
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+
+                      {/* Números de página com elipses */}
+                      {(() => {
+                        const total = data.totalPages;
+                        const delta = 2;
+                        const range: (number | "...")[] = [];
+                        const pages = new Set<number>();
+                        pages.add(1);
+                        pages.add(total);
+                        for (let i = Math.max(2, page - delta); i <= Math.min(total - 1, page + delta); i++) pages.add(i);
+                        const sorted = Array.from(pages).sort((a, b) => a - b);
+                        let prev = 0;
+                        for (const p of sorted) {
+                          if (p - prev > 1) range.push("...");
+                          range.push(p);
+                          prev = p;
+                        }
+                        return range.map((item, idx) =>
+                          item === "..." ? (
+                            <span key={`ellipsis-${idx}`} className="px-1 text-sm" style={{ color: "oklch(0.40 0 0)" }}>…</span>
+                          ) : (
+                            <button
+                              key={item}
+                              onClick={() => goToPageNum(item as number, data.totalPages)}
+                              className="w-9 h-9 rounded-lg text-sm font-medium transition-all active:scale-95"
+                              style={{
+                                background: page === item ? "oklch(0.85 0.18 95)" : "oklch(0.18 0 0)",
+                                color: page === item ? "oklch(0.08 0 0)" : "oklch(0.65 0 0)",
+                                border: `1px solid ${page === item ? "oklch(0.85 0.18 95)" : "oklch(0.26 0 0)"}`,
+                                fontWeight: page === item ? 700 : 400,
+                              }}
+                            >
+                              {item}
+                            </button>
+                          )
+                        );
+                      })()}
+
+                      {/* Próxima página */}
+                      <button
+                        onClick={() => goToPageNum(page + 1, data.totalPages)}
+                        disabled={page === data.totalPages}
+                        title="Próxima página"
+                        className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                        style={{ background: "oklch(0.18 0 0)", color: "oklch(0.65 0 0)" }}
+                        onMouseEnter={e => { if (page !== data.totalPages) e.currentTarget.style.color = "oklch(0.85 0.18 95)"; }}
+                        onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.65 0 0)")}
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+
+                      {/* Última página */}
+                      <button
+                        onClick={() => goToPageNum(data.totalPages, data.totalPages)}
+                        disabled={page === data.totalPages}
+                        title="Última página"
+                        className="p-2 rounded-lg transition-colors disabled:opacity-30"
+                        style={{ background: "oklch(0.18 0 0)", color: "oklch(0.65 0 0)" }}
+                        onMouseEnter={e => { if (page !== data.totalPages) e.currentTarget.style.color = "oklch(0.85 0.18 95)"; }}
+                        onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.65 0 0)")}
+                      >
+                        <ChevronsRight size={16} />
+                      </button>
+                    </div>
+
+                    {/* Campo "Ir para página" */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs hidden sm:inline" style={{ color: "oklch(0.50 0 0)" }}>Ir para:</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={1}
+                          max={data.totalPages}
+                          value={goToPage}
+                          onChange={e => setGoToPage(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && goToPage) {
+                              goToPageNum(Number(goToPage), data.totalPages);
+                            }
                           }}
+                          placeholder={String(page)}
+                          className="w-16 text-center text-sm rounded-lg outline-none"
+                          style={{
+                            background: "oklch(0.18 0 0)",
+                            border: "1px solid oklch(0.28 0 0)",
+                            color: "oklch(0.85 0 0)",
+                            padding: "6px 8px",
+                          }}
+                          onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
+                          onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
+                        />
+                        <span className="text-xs" style={{ color: "oklch(0.40 0 0)" }}>/ {data.totalPages}</span>
+                        <button
+                          onClick={() => goToPage && goToPageNum(Number(goToPage), data.totalPages)}
+                          disabled={!goToPage}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30"
+                          style={{ background: "oklch(0.85 0.18 95)", color: "oklch(0.08 0 0)" }}
+                          onMouseEnter={e => { if (goToPage) e.currentTarget.style.background = "oklch(0.70 0.18 95)"; }}
+                          onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.85 0.18 95)")}
                         >
-                          {p}
+                          Ir
                         </button>
-                      );
-                    })}
-
-                    <button
-                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                      disabled={page === data.totalPages}
-                      className="p-2.5 rounded-lg transition-colors disabled:opacity-30"
-                      style={{ background: "oklch(0.18 0 0)", color: "oklch(0.75 0 0)" }}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

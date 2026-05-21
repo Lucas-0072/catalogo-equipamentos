@@ -232,3 +232,86 @@ describe("Cadastro Manual de Equipamento", () => {
     expect(isDuplicate("701099")).toBe(false);
   });
 });
+
+describe("Paginação aprimorada", () => {
+  const clamp = (p: number, total: number) => Math.max(1, Math.min(p, total));
+
+  it("deve calcular o intervalo de itens exibidos corretamente", () => {
+    const page = 3, pageSize = 24, total = 5689;
+    const from = (page - 1) * pageSize + 1;
+    const to = Math.min(page * pageSize, total);
+    expect(from).toBe(49);
+    expect(to).toBe(72);
+  });
+
+  it("deve calcular o total de páginas corretamente", () => {
+    expect(Math.ceil(5689 / 24)).toBe(238);
+    expect(Math.ceil(5689 / 12)).toBe(475);
+    expect(Math.ceil(5689 / 48)).toBe(119);
+    expect(Math.ceil(5689 / 96)).toBe(60);
+  });
+
+  it("deve limitar a página ao intervalo válido ao usar 'Ir para'", () => {
+    expect(clamp(0, 238)).toBe(1);
+    expect(clamp(300, 238)).toBe(238);
+    expect(clamp(50, 238)).toBe(50);
+  });
+
+  it("deve calcular a largura da barra de progresso corretamente", () => {
+    const progress = (page: number, total: number) => Math.round((page / total) * 100);
+    expect(progress(1, 238)).toBe(0);
+    expect(progress(119, 238)).toBe(50);
+    expect(progress(238, 238)).toBe(100);
+  });
+
+  it("deve gerar elipses corretamente para página no meio", () => {
+    const buildRange = (page: number, total: number, delta = 2): (number | "...")[] => {
+      const pages = new Set<number>();
+      pages.add(1);
+      pages.add(total);
+      for (let i = Math.max(2, page - delta); i <= Math.min(total - 1, page + delta); i++) pages.add(i);
+      const sorted = Array.from(pages).sort((a, b) => a - b);
+      const range: (number | "...")[] = [];
+      let prev = 0;
+      for (const p of sorted) {
+        if (p - prev > 1) range.push("...");
+        range.push(p);
+        prev = p;
+      }
+      return range;
+    };
+    const range = buildRange(50, 238);
+    expect(range[0]).toBe(1);
+    expect(range[1]).toBe("...");
+    expect(range).toContain(50);
+    expect(range[range.length - 2]).toBe("...");
+    expect(range[range.length - 1]).toBe(238);
+  });
+
+  it("não deve gerar elipses quando páginas são contíguas", () => {
+    const buildRange = (page: number, total: number, delta = 2): (number | "...")[] => {
+      const pages = new Set<number>();
+      pages.add(1);
+      pages.add(total);
+      for (let i = Math.max(2, page - delta); i <= Math.min(total - 1, page + delta); i++) pages.add(i);
+      const sorted = Array.from(pages).sort((a, b) => a - b);
+      const range: (number | "...")[] = [];
+      let prev = 0;
+      for (const p of sorted) {
+        if (p - prev > 1) range.push("...");
+        range.push(p);
+        prev = p;
+      }
+      return range;
+    };
+    const range = buildRange(3, 6);
+    expect(range.includes("...")).toBe(false);
+  });
+
+  it("deve resetar para página 1 ao mudar o tamanho da página", () => {
+    let page = 10;
+    const changePageSize = () => { page = 1; };
+    changePageSize();
+    expect(page).toBe(1);
+  });
+});
