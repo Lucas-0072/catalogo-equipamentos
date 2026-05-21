@@ -3,7 +3,8 @@ import { useUndoRedo } from "../hooks/useUndoRedo";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import EquipamentoCard from "../components/EquipamentoCard";
-import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X, Hash, FileText, SlidersHorizontal } from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X, Hash, FileText, SlidersHorizontal, Plus } from "lucide-react";
+import NovoEquipamentoModal from "../components/NovoEquipamentoModal";
 
 // ── Componentes auxiliares ──────────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ export default function CatalogPage() {
   const [selectedGrupo, setSelectedGrupo] = useState("");
   const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [novoModalOpen, setNovoModalOpen] = useState(false);
 
   const { canUndo, canRedo, undo, redo } = useUndoRedo();
   const utils = trpc.useUtils();
@@ -183,8 +185,10 @@ export default function CatalogPage() {
               : "Carregando..."}
           </p>
 
+          {/* Linha: busca + botão novo */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
           {/* Campos de busca */}
-          <div className="flex flex-col sm:flex-row gap-2 max-w-3xl">
+          <div className="flex flex-col sm:flex-row gap-2 flex-1 max-w-3xl">
             <div className="flex-1 relative">
               <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "oklch(0.55 0 0)" }} />
               <input
@@ -222,6 +226,29 @@ export default function CatalogPage() {
             >
               <Search size={15} /> Buscar
             </button>
+          </div>
+
+          {/* Botão Novo Equipamento */}
+          <button
+            onClick={() => setNovoModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex-shrink-0 active:scale-95"
+            style={{
+              background: "oklch(0.08 0 0)",
+              border: "2px solid oklch(0.85 0.18 95)",
+              color: "oklch(0.85 0.18 95)",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "oklch(0.85 0.18 95)";
+              e.currentTarget.style.color = "oklch(0.08 0 0)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "oklch(0.08 0 0)";
+              e.currentTarget.style.color = "oklch(0.85 0.18 95)";
+            }}
+          >
+            <Plus size={16} />
+            Novo Equipamento
+          </button>
           </div>
         </div>
       </div>
@@ -426,6 +453,18 @@ export default function CatalogPage() {
           )}
         </main>
       </div>
+
+      {/* Modal de Novo Equipamento */}
+      {novoModalOpen && (
+        <NovoEquipamentoModal
+          onClose={() => setNovoModalOpen(false)}
+          onCreated={() => {
+            utils.equipamentos.list.invalidate();
+            utils.equipamentos.grupos.invalidate();
+            utils.equipamentos.subgrupos.invalidate();
+          }}
+        />
+      )}
     </div>
   );
 }

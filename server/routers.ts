@@ -189,6 +189,32 @@ export const appRouter = router({
         };
       }),
 
+    create: protectedProcedure
+      .input(z.object({
+        codigo: z.string().min(1),
+        descricao: z.string().min(1),
+        referencia: z.string().optional().nullable(),
+        ncm: z.string().optional().nullable(),
+        unidade: z.string().optional().nullable(),
+        grupo: z.string().optional().nullable(),
+        grupoNome: z.string().optional().nullable(),
+        subgrupo: z.string().optional().nullable(),
+        subgrupoNome: z.string().optional().nullable(),
+        imagem: z.string().optional().nullable(),
+        fornecedor1Id: z.number().optional().nullable(),
+        fornecedor2Id: z.number().optional().nullable(),
+        fornecedor3Id: z.number().optional().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const existing = await db.select({ id: equipamentos.id }).from(equipamentos)
+          .where(eq(equipamentos.codigo, input.codigo)).limit(1);
+        if (existing.length > 0) throw new Error(`Código "${input.codigo}" já existe no catálogo.`);
+        const [result] = await db.insert(equipamentos).values(input);
+        return { id: result.insertId };
+      }),
+
     update: protectedProcedure
       .input(z.object({
         id: z.number(),

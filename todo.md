@@ -40,3 +40,5 @@
 - [x] Criar endpoint de upload e sincronização do Excel no backend (upsert por código)
 - [x] Criar interface de upload da planilha no painel Admin com barra de progresso
 - [x] Exibir relatório pós-sincronização (itens adicionados, atualizados, removidos)
+- [x] Criar botão "Novo Equipamento" no catálogo com modal de cadastro completo (todos os campos + imagem + até 3 fornecedores)
+- [x] Criar endpoint de criação de equipamento no backend

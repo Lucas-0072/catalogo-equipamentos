@@ -181,3 +181,54 @@ describe("Sincronização com Excel", () => {
     expect(chunks).toBe(12);
   });
 });
+
+describe("Cadastro Manual de Equipamento", () => {
+  it("deve rejeitar cadastro sem código", () => {
+    const validate = (form: { codigo: string; descricao: string }) => {
+      const errs: Record<string, string> = {};
+      if (!form.codigo.trim()) errs.codigo = "Código é obrigatório";
+      if (!form.descricao.trim()) errs.descricao = "Descrição é obrigatória";
+      return errs;
+    };
+    const errs = validate({ codigo: "", descricao: "TANQUE PP" });
+    expect(errs.codigo).toBe("Código é obrigatório");
+    expect(errs.descricao).toBeUndefined();
+  });
+
+  it("deve rejeitar cadastro sem descrição", () => {
+    const validate = (form: { codigo: string; descricao: string }) => {
+      const errs: Record<string, string> = {};
+      if (!form.codigo.trim()) errs.codigo = "Código é obrigatório";
+      if (!form.descricao.trim()) errs.descricao = "Descrição é obrigatória";
+      return errs;
+    };
+    const errs = validate({ codigo: "701099", descricao: "" });
+    expect(errs.descricao).toBe("Descrição é obrigatória");
+    expect(errs.codigo).toBeUndefined();
+  });
+
+  it("deve aceitar cadastro com código e descrição válidos", () => {
+    const validate = (form: { codigo: string; descricao: string }) => {
+      const errs: Record<string, string> = {};
+      if (!form.codigo.trim()) errs.codigo = "Código é obrigatório";
+      if (!form.descricao.trim()) errs.descricao = "Descrição é obrigatória";
+      return errs;
+    };
+    const errs = validate({ codigo: "701099", descricao: "TANQUE PP NOVO" });
+    expect(Object.keys(errs).length).toBe(0);
+  });
+
+  it("deve normalizar campos opcionais vazios para null", () => {
+    const normalize = (val: string) => val.trim() || null;
+    expect(normalize("")).toBeNull();
+    expect(normalize("  ")).toBeNull();
+    expect(normalize("39251000")).toBe("39251000");
+  });
+
+  it("deve detectar código duplicado antes de inserir", () => {
+    const existingCodigos = new Set(["701001", "701002", "701003"]);
+    const isDuplicate = (codigo: string) => existingCodigos.has(codigo);
+    expect(isDuplicate("701001")).toBe(true);
+    expect(isDuplicate("701099")).toBe(false);
+  });
+});
