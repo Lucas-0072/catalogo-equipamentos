@@ -1,0 +1,21 @@
+# Catálogo de Equipamentos — TODO
+
+- [x] Analisar arquivo Excel com 5.689 equipamentos
+- [x] Exportar dados do Excel para JSON
+- [x] Inicializar projeto web com banco de dados e autenticação
+- [x] Criar schema do banco: tabelas equipamentos e fornecedores
+- [x] Executar migration do banco de dados
+- [x] Desenvolver backend (tRPC): rotas de equipamentos e fornecedores
+- [x] Adicionar logo Procytek no header
+- [x] Adicionar botões desfazer/refazer no canto superior direito
+- [x] Desenvolver frontend: página de catálogo com design preto/amarelo
+- [x] Desenvolver frontend: filtros por grupo e subgrupo
+- [x] Desenvolver frontend: busca por código, referência e descrição
+- [x] Desenvolver frontend: paginação
+- [x] Desenvolver frontend: card de equipamento com imagem e fornecedores
+- [x] Desenvolver frontend: página de detalhes do equipamento
+- [x] Desenvolver frontend: upload de imagem por equipamento
+- [x] Desenvolver frontend: seleção de até 3 fornecedores por equipamento
+- [x] Desenvolver frontend: página Admin para gerenciar fornecedores
+- [x] Hook useUndoRedo com atalhos Ctrl+Z / Ctrl+Y
+- [x] Importar 5.689 equipamentos do Excel para o banco de dados
