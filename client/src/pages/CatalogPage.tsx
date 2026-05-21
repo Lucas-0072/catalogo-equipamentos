@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useUndoRedo } from "../hooks/useUndoRedo";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import EquipamentoCard from "../components/EquipamentoCard";
@@ -18,6 +19,8 @@ export default function CatalogPage() {
   // Filtros de categoria
   const [selectedGrupo, setSelectedGrupo] = useState("");
   const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
+
+  const { canUndo, canRedo, undo, redo } = useUndoRedo();
 
   const pageSize = 24;
 
@@ -70,7 +73,7 @@ export default function CatalogPage() {
 
   return (
     <div className="min-h-screen" style={{ background: "oklch(0.10 0 0)" }}>
-      <Header />
+      <Header canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo} />
 
       {/* Hero / Busca */}
       <div className="border-b py-8 px-4" style={{ background: "oklch(0.12 0 0)", borderColor: "oklch(0.20 0 0)" }}>

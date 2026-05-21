@@ -60,7 +60,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen" style={{ background: "oklch(0.10 0 0)" }}>
-      <Header showUndoRedo canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo} />
+      <Header canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo} />
 
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">

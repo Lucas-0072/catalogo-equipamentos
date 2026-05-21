@@ -23,3 +23,6 @@
 - [x] Exibir subgrupos com código numérico real do arquivo (ex: 701, 702...)
 - [x] Atualizar nomes de grupos/subgrupos no banco com os valores reais
 - [x] Melhorar barra de busca com filtro dedicado por nome e por código
+- [x] Adicionar botões Desfazer/Refazer visíveis no header com ícones e tooltips
+- [x] Configurar PWA (Service Worker + manifest.json) para acesso offline
+- [x] Implementar cache offline dos equipamentos via Service Worker

@@ -101,7 +101,6 @@ export default function EquipamentoDetail() {
   return (
     <div className="min-h-screen" style={{ background: "oklch(0.10 0 0)" }}>
       <Header
-        showUndoRedo
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}

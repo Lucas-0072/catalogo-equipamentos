@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { VitePWA } from "vite-plugin-pwa";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -150,7 +151,67 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+  VitePWA({
+    registerType: "autoUpdate",
+    includeAssets: ["manifest.json"],
+    manifest: false, // usamos o manifest.json manual em public/
+    workbox: {
+      globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      runtimeCaching: [
+        {
+          // Cache de API do catálogo (lista de equipamentos)
+          urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/trpc/equipamentos.list'),
+          handler: "StaleWhileRevalidate" as const,
+          options: {
+            cacheName: "equipamentos-api-cache",
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
+            },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+        {
+          // Cache de grupos e subgrupos
+          urlPattern: ({ url }: { url: URL }) =>
+            url.pathname.startsWith('/api/trpc/equipamentos.grupos') ||
+            url.pathname.startsWith('/api/trpc/equipamentos.subgrupos'),
+          handler: "CacheFirst" as const,
+          options: {
+            cacheName: "equipamentos-meta-cache",
+            expiration: {
+              maxEntries: 20,
+              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+            },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+        {
+          // Cache de imagens do storage
+          urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/manus-storage/'),
+          handler: "CacheFirst" as const,
+          options: {
+            cacheName: "storage-images-cache",
+            expiration: {
+              maxEntries: 200,
+              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+            },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+      ],
+    },
+    devOptions: {
+      enabled: false, // desativa no dev para não interferir com HMR
+    },
+  }),
+];
 
 export default defineConfig({
   plugins,

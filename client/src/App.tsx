@@ -4,6 +4,7 @@ import CatalogPage from "./pages/CatalogPage";
 import EquipamentoDetail from "./pages/EquipamentoDetail";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
+import OfflineBanner from "./components/OfflineBanner";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route component={NotFound} />
       </Switch>
       <Toaster richColors position="top-right" />
+      <OfflineBanner />
     </>
   );
 }
