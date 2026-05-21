@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
-import { equipamentos, fornecedores } from "../drizzle/schema";
+import { equipamentos, fornecedores, syncHistory } from "../drizzle/schema";
 import type { Equipamento, Fornecedor } from "../drizzle/schema";
 import { eq, like, or, and, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -273,100 +273,6 @@ export const appRouter = router({
         return result.filter((r: { subgrupo: string | null; subgrupoNome: string | null; grupo: string | null }) => r.subgrupo);
       }),
 
-    // ── Sincronização com planilha Excel ──────────────────────────────────
-    syncExcel: protectedProcedure
-      .input(z.object({
-        // Dados da planilha como array de objetos
-        rows: z.array(z.object({
-          codigo: z.string(),
-          referencia: z.string().optional().nullable(),
-          descricao: z.string(),
-          unidade: z.string().optional().nullable(),
-          idTipo: z.string().optional().nullable(),
-          grupo: z.string().optional().nullable(),
-          subgrupo: z.string().optional().nullable(),
-          cstCod: z.string().optional().nullable(),
-          cst: z.string().optional().nullable(),
-          ncm: z.string().optional().nullable(),
-          ipi: z.string().optional().nullable(),
-        })),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        let adicionados = 0;
-        let atualizados = 0;
-        let ignorados = 0;
-
-        // Buscar todos os códigos existentes de uma vez
-        const existingRows = await db
-          .select({ id: equipamentos.id, codigo: equipamentos.codigo, imagem: equipamentos.imagem,
-            fornecedor1Id: equipamentos.fornecedor1Id, fornecedor2Id: equipamentos.fornecedor2Id, fornecedor3Id: equipamentos.fornecedor3Id })
-          .from(equipamentos);
-
-        const existingMap = new Map<string, { id: number; imagem: string | null; fornecedor1Id: number | null; fornecedor2Id: number | null; fornecedor3Id: number | null }>();
-        for (const row of existingRows) {
-          if (row.codigo) existingMap.set(row.codigo.trim(), row as any);
-        }
-
-        // Processar em lotes de 100
-        const BATCH = 100;
-        for (let i = 0; i < input.rows.length; i += BATCH) {
-          const batch = input.rows.slice(i, i + BATCH);
-          for (const row of batch) {
-            const codigo = row.codigo?.trim();
-            if (!codigo) { ignorados++; continue; }
-
-            const grupoStr = row.grupo ? String(row.grupo).trim() : null;
-            const subgrupoStr = row.subgrupo ? String(row.subgrupo).trim() : null;
-
-            // Montar nome do grupo/subgrupo a partir da referência
-            const refStr = row.referencia ? String(row.referencia).trim() : null;
-            const grupoNome = refStr || grupoStr;
-            const subgrupoNome = subgrupoStr ? `${subgrupoStr} - ${refStr ?? grupoStr ?? ""}` : null;
-
-            const ncmClean = row.ncm && String(row.ncm) !== "nan" && String(row.ncm) !== "None" ? String(row.ncm).trim() : null;
-            const ipiClean = row.ipi && String(row.ipi) !== "nan" && String(row.ipi) !== "0" ? String(row.ipi).trim() : null;
-
-            const existing = existingMap.get(codigo);
-
-            if (existing) {
-              // Atualizar preservando imagem e fornecedores
-              await db.update(equipamentos).set({
-                descricao: row.descricao?.trim() || "",
-                referencia: refStr,
-                unidade: row.unidade?.trim() || null,
-                grupo: grupoStr,
-                grupoNome: grupoNome,
-                subgrupo: subgrupoStr,
-                subgrupoNome: subgrupoNome,
-                ncm: ncmClean,
-                ipi: ipiClean,
-              }).where(eq(equipamentos.id, existing.id));
-              atualizados++;
-            } else {
-              // Inserir novo
-              await db.insert(equipamentos).values({
-                codigo,
-                descricao: row.descricao?.trim() || "",
-                referencia: refStr,
-                unidade: row.unidade?.trim() || null,
-                grupo: grupoStr,
-                grupoNome: grupoNome,
-                subgrupo: subgrupoStr,
-                subgrupoNome: subgrupoNome,
-                ncm: ncmClean,
-                ipi: ipiClean,
-              });
-              adicionados++;
-            }
-          }
-        }
-
-        return { adicionados, atualizados, ignorados, total: input.rows.length };
-      }),
-
     uploadImagem: protectedProcedure
       .input(z.object({
         id: z.number(),
@@ -383,6 +289,173 @@ export const appRouter = router({
         await db.update(equipamentos).set({ imagem: url }).where(eq(equipamentos.id, input.id));
         return { url };
       }),
+
+    // Sincronização com Excel com histórico detalhado
+    syncExcel: protectedProcedure
+      .input(z.object({
+        fileName: z.string(),
+        rows: z.array(z.object({
+          codigo: z.string(),
+          referencia: z.string().optional().nullable(),
+          descricao: z.string(),
+          unidade: z.string().optional().nullable(),
+          idTipo: z.string().optional().nullable(),
+          grupo: z.string().optional().nullable(),
+          subgrupo: z.string().optional().nullable(),
+          ncm: z.string().optional().nullable(),
+          ipi: z.string().optional().nullable(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        // Registrar início da sincronização
+        const [syncResult] = await db.insert(syncHistory).values({
+          fileName: input.fileName,
+          status: "processing",
+          totalRows: input.rows.length,
+        });
+        const syncId = syncResult.insertId;
+
+        let adicionados = 0;
+        let atualizados = 0;
+        let ignorados = 0;
+        let erros = 0;
+        const detalhesAdicionados: string[] = [];
+        const detalhesAtualizados: { codigo: string; campos: string[] }[] = [];
+
+        try {
+          // Buscar todos os registros existentes
+          const existingRows = await db
+            .select({
+              id: equipamentos.id,
+              codigo: equipamentos.codigo,
+              descricao: equipamentos.descricao,
+              referencia: equipamentos.referencia,
+              unidade: equipamentos.unidade,
+              grupo: equipamentos.grupo,
+              subgrupo: equipamentos.subgrupo,
+              ncm: equipamentos.ncm,
+              ipi: equipamentos.ipi,
+              imagem: equipamentos.imagem,
+              fornecedor1Id: equipamentos.fornecedor1Id,
+              fornecedor2Id: equipamentos.fornecedor2Id,
+              fornecedor3Id: equipamentos.fornecedor3Id,
+            })
+            .from(equipamentos);
+
+          const existingMap = new Map<string, typeof existingRows[0]>();
+          for (const row of existingRows) {
+            if (row.codigo) existingMap.set(row.codigo.trim(), row);
+          }
+
+          // Processar em lotes de 100
+          const BATCH = 100;
+          for (let i = 0; i < input.rows.length; i += BATCH) {
+            const batch = input.rows.slice(i, i + BATCH);
+            for (const row of batch) {
+              try {
+                const codigo = row.codigo?.trim();
+                if (!codigo) { ignorados++; continue; }
+
+                const grupoStr = row.grupo ? String(row.grupo).trim() : null;
+                const subgrupoStr = row.subgrupo ? String(row.subgrupo).trim() : null;
+                const refStr = row.referencia ? String(row.referencia).trim() : null;
+                const grupoNome = refStr || grupoStr;
+                const subgrupoNome = subgrupoStr ? `${subgrupoStr} - ${refStr ?? grupoStr ?? ""}` : null;
+                const ncmClean = row.ncm && String(row.ncm) !== "nan" && String(row.ncm) !== "None" ? String(row.ncm).trim() : null;
+                const ipiClean = row.ipi && String(row.ipi) !== "nan" && String(row.ipi) !== "0" ? String(row.ipi).trim() : null;
+                const descricaoClean = row.descricao?.trim() || "";
+
+                const existing = existingMap.get(codigo);
+
+                if (existing) {
+                  // Detectar campos alterados
+                  const camposAlterados: string[] = [];
+                  if (existing.descricao !== descricaoClean) camposAlterados.push("descrição");
+                  if ((existing.referencia ?? null) !== refStr) camposAlterados.push("referência");
+                  if ((existing.unidade ?? null) !== (row.unidade?.trim() || null)) camposAlterados.push("unidade");
+                  if ((existing.grupo ?? null) !== grupoStr) camposAlterados.push("grupo");
+                  if ((existing.subgrupo ?? null) !== subgrupoStr) camposAlterados.push("subgrupo");
+                  if ((existing.ncm ?? null) !== ncmClean) camposAlterados.push("NCM");
+                  if ((existing.ipi ?? null) !== ipiClean) camposAlterados.push("IPI");
+
+                  if (camposAlterados.length > 0) {
+                    await db.update(equipamentos).set({
+                      descricao: descricaoClean,
+                      referencia: refStr,
+                      unidade: row.unidade?.trim() || null,
+                      grupo: grupoStr,
+                      grupoNome,
+                      subgrupo: subgrupoStr,
+                      subgrupoNome,
+                      ncm: ncmClean,
+                      ipi: ipiClean,
+                    }).where(eq(equipamentos.id, existing.id));
+                    atualizados++;
+                    detalhesAtualizados.push({ codigo, campos: camposAlterados });
+                  } else {
+                    ignorados++;
+                  }
+                } else {
+                  await db.insert(equipamentos).values({
+                    codigo,
+                    descricao: descricaoClean,
+                    referencia: refStr,
+                    unidade: row.unidade?.trim() || null,
+                    grupo: grupoStr,
+                    grupoNome,
+                    subgrupo: subgrupoStr,
+                    subgrupoNome,
+                    ncm: ncmClean,
+                    ipi: ipiClean,
+                  });
+                  adicionados++;
+                  detalhesAdicionados.push(codigo);
+                }
+              } catch {
+                erros++;
+              }
+            }
+          }
+
+          // Atualizar registro de sincronização como concluído
+          const detalhesJson = JSON.stringify({
+            adicionados: detalhesAdicionados.slice(0, 100),
+            atualizados: detalhesAtualizados.slice(0, 100),
+          });
+          await db.update(syncHistory).set({
+            status: "completed",
+            adicionados,
+            atualizados,
+            ignorados,
+            erros,
+            detalhes: detalhesJson,
+            completedAt: new Date(),
+          }).where(eq(syncHistory.id, syncId));
+
+          return { syncId, adicionados, atualizados, ignorados, erros, total: input.rows.length };
+        } catch (err) {
+          await db.update(syncHistory).set({
+            status: "error",
+            errorMessage: String(err),
+            completedAt: new Date(),
+          }).where(eq(syncHistory.id, syncId));
+          throw err;
+        }
+      }),
+
+    // Histórico de sincronizações
+    syncHistoryList: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(syncHistory)
+        .orderBy(sql`${syncHistory.createdAt} DESC`)
+        .limit(20);
+    }),
   }),
 });
 

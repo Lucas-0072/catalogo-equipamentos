@@ -15,6 +15,13 @@
       "when": 1779368121123,
       "tag": "0001_shallow_elektra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1779373188307,
+      "tag": "0002_dry_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

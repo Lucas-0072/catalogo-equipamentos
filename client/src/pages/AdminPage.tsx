@@ -2,16 +2,36 @@ import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import { useUndoRedo } from "../hooks/useUndoRedo";
-import { Plus, Trash2, Save, Building2, Loader2, X, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Plus, Trash2, Save, Building2, Loader2, X, Upload, FileSpreadsheet,
+  CheckCircle2, AlertCircle, RefreshCw, History, ChevronDown, ChevronUp,
+} from "lucide-react";
 import { toast } from "sonner";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface SyncResult {
+  syncId: number;
   adicionados: number;
   atualizados: number;
   ignorados: number;
+  erros: number;
   total: number;
+}
+
+interface SyncHistoryItem {
+  id: number;
+  fileName: string;
+  status: "processing" | "completed" | "error";
+  totalRows: number | null;
+  adicionados: number | null;
+  atualizados: number | null;
+  ignorados: number | null;
+  erros: number | null;
+  detalhes: string | null;
+  errorMessage: string | null;
+  createdAt: Date;
+  completedAt: Date | null;
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -21,6 +41,8 @@ export default function AdminPage() {
   const utils = trpc.useUtils();
 
   const { data: fornecedores, isLoading } = trpc.fornecedores.list.useQuery();
+  const { data: syncHistoryData, refetch: refetchHistory } = trpc.equipamentos.syncHistoryList.useQuery();
+
   const createMutation = trpc.fornecedores.create.useMutation({
     onSuccess: () => utils.fornecedores.list.invalidate(),
   });
@@ -42,6 +64,8 @@ export default function AdminPage() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCreate = async () => {
@@ -84,20 +108,13 @@ export default function AdminPage() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          // Usar SheetJS via CDN dinâmico ou processar como CSV/texto
-          // Como não temos SheetJS instalado, vamos usar uma abordagem alternativa:
-          // Enviar o arquivo como base64 e processar no servidor
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const bytes = new Uint8Array(arrayBuffer);
-
-          // Importar XLSX dinamicamente
           const XLSX = await import("xlsx");
           const workbook = XLSX.read(bytes, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const sheet = workbook.Sheets[sheetName];
           const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
-
-          // Primeira linha é cabeçalho
           const headers = rawData[0] as string[];
           const rows = rawData.slice(1).map(row => {
             const obj: Record<string, string> = {};
@@ -106,7 +123,6 @@ export default function AdminPage() {
             });
             return obj;
           }).filter(row => row["CODIGO"] && row["CODIGO"] !== "");
-
           resolve(rows);
         } catch (err) {
           reject(err);
@@ -150,8 +166,6 @@ export default function AdminPage() {
         idTipo: String(r["ID"] ?? "").trim() || null,
         grupo: String(r["GRUPO"] ?? "").trim() || null,
         subgrupo: String(r["SUBGRUPO"] ?? "").trim() || null,
-        cstCod: String(r["CST CÓD"] ?? "").trim() || null,
-        cst: String(r["CST"] ?? "").trim() || null,
         ncm: String(r["NBM/NCM"] ?? "").trim() || null,
         ipi: String(r["%IPI"] ?? "").trim() || null,
       })).filter(r => r.codigo);
@@ -159,36 +173,28 @@ export default function AdminPage() {
       setSyncProgress(50);
       setSyncStep("sending");
 
-      // 3. Enviar para o backend em lotes para mostrar progresso
-      const CHUNK = 500;
-      let adicionados = 0;
-      let atualizados = 0;
-      let ignorados = 0;
-
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const chunk = rows.slice(i, i + CHUNK);
-        const result = await syncMutation.mutateAsync({ rows: chunk });
-        adicionados += result.adicionados;
-        atualizados += result.atualizados;
-        ignorados += result.ignorados;
-        const progress = 50 + Math.round(((i + CHUNK) / rows.length) * 50);
-        setSyncProgress(Math.min(progress, 98));
-      }
+      // 3. Enviar tudo de uma vez para o backend com histórico
+      const result = await syncMutation.mutateAsync({
+        fileName: file.name,
+        rows,
+      });
 
       setSyncProgress(100);
       setSyncStep("done");
-      setSyncResult({ adicionados, atualizados, ignorados, total: rows.length });
+      setSyncResult(result);
 
       // Invalidar o catálogo para refletir as mudanças
       utils.equipamentos.list.invalidate();
       utils.equipamentos.grupos.invalidate();
       utils.equipamentos.subgrupos.invalidate();
+      refetchHistory();
 
-      toast.success(`Sincronização concluída! ${adicionados} adicionados, ${atualizados} atualizados.`);
+      toast.success(`Sincronização concluída! ${result.adicionados} adicionados, ${result.atualizados} atualizados.`);
     } catch (err: any) {
       setSyncStep("error");
       setSyncError(err?.message ?? "Erro desconhecido durante a sincronização.");
       toast.error("Erro na sincronização com a planilha.");
+      refetchHistory();
     }
   };
 
@@ -202,6 +208,11 @@ export default function AdminPage() {
   };
 
   const isSyncing = syncStep === "reading" || syncStep === "sending";
+
+  const formatDate = (d: Date | null) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -229,20 +240,29 @@ export default function AdminPage() {
             className="px-5 py-4 border-b flex items-center gap-3"
             style={{ background: "oklch(0.85 0.18 95 / 0.08)", borderColor: "oklch(0.85 0.18 95 / 0.25)" }}
           >
-            <div
-              className="p-2 rounded-lg"
-              style={{ background: "oklch(0.85 0.18 95 / 0.15)" }}
-            >
+            <div className="p-2 rounded-lg" style={{ background: "oklch(0.85 0.18 95 / 0.15)" }}>
               <FileSpreadsheet size={18} style={{ color: "oklch(0.85 0.18 95)" }} />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="text-sm font-bold" style={{ color: "oklch(0.85 0.18 95)" }}>
                 Sincronizar com Planilha Excel
               </h3>
               <p className="text-xs mt-0.5" style={{ color: "oklch(0.60 0 0)" }}>
-                Faça upload da planilha atualizada para sincronizar o catálogo automaticamente
+                Faça upload da planilha atualizada — o catálogo é atualizado automaticamente
               </p>
             </div>
+            {/* Botão histórico */}
+            <button
+              onClick={() => setShowHistory(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ background: "oklch(0.18 0 0)", border: "1px solid oklch(0.28 0 0)", color: "oklch(0.65 0 0)" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95 / 0.40)")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
+            >
+              <History size={13} />
+              Histórico
+              {showHistory ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
           </div>
 
           <div className="p-5 space-y-4">
@@ -265,15 +285,23 @@ export default function AdminPage() {
                     borderColor: selectedFileName ? "oklch(0.85 0.18 95 / 0.60)" : "oklch(0.28 0 0)",
                     background: selectedFileName ? "oklch(0.85 0.18 95 / 0.05)" : "oklch(0.14 0 0)",
                   }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = "oklch(0.85 0.18 95 / 0.60)";
-                    (e.currentTarget as HTMLElement).style.background = "oklch(0.85 0.18 95 / 0.05)";
-                  }}
-                  onMouseLeave={e => {
-                    if (!selectedFileName) {
-                      (e.currentTarget as HTMLElement).style.borderColor = "oklch(0.28 0 0)";
-                      (e.currentTarget as HTMLElement).style.background = "oklch(0.14 0 0)";
+                  onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor = "oklch(0.85 0.18 95)"; }}
+                  onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = selectedFileName ? "oklch(0.85 0.18 95 / 0.60)" : "oklch(0.28 0 0)"; }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const f = e.dataTransfer.files?.[0];
+                    if (f && (f.name.endsWith(".xlsx") || f.name.endsWith(".xls"))) {
+                      setSelectedFileName(f.name);
+                      setSyncStep("idle");
+                      setSyncResult(null);
+                      setSyncError(null);
+                      setSyncProgress(0);
+                      // Atribuir ao input file para uso posterior
+                      const dt = new DataTransfer();
+                      dt.items.add(f);
+                      if (fileInputRef.current) fileInputRef.current.files = dt.files;
                     }
+                    (e.currentTarget as HTMLElement).style.borderColor = "oklch(0.85 0.18 95 / 0.60)";
                   }}
                 >
                   {selectedFileName ? (
@@ -293,7 +321,7 @@ export default function AdminPage() {
                       <Upload size={28} style={{ color: "oklch(0.45 0 0)" }} />
                       <div className="text-center">
                         <p className="text-sm font-medium" style={{ color: "oklch(0.70 0 0)" }}>
-                          Clique para selecionar a planilha
+                          Arraste o arquivo ou clique para selecionar
                         </p>
                         <p className="text-xs mt-1" style={{ color: "oklch(0.45 0 0)" }}>
                           Formatos aceitos: .xlsx, .xls
@@ -318,13 +346,16 @@ export default function AdminPage() {
                 </div>
                 <div className="h-2 rounded-full overflow-hidden" style={{ background: "oklch(0.20 0 0)" }}>
                   <div
-                    className="h-full rounded-full transition-all duration-300"
+                    className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${syncProgress}%`,
                       background: "linear-gradient(90deg, oklch(0.75 0.18 95), oklch(0.85 0.18 95))",
                     }}
                   />
                 </div>
+                <p className="text-xs text-center" style={{ color: "oklch(0.45 0 0)" }}>
+                  Aguarde — imagens e fornecedores serão preservados
+                </p>
               </div>
             )}
 
@@ -341,17 +372,18 @@ export default function AdminPage() {
                       Sincronização concluída com sucesso!
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: "oklch(0.55 0 0)" }}>
-                      O catálogo foi atualizado com os dados da planilha.
+                      O catálogo foi atualizado com os dados da planilha. Registro #{syncResult.syncId} salvo no histórico.
                     </p>
                   </div>
                 </div>
 
                 {/* Estatísticas */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { label: "Adicionados", value: syncResult.adicionados, color: "oklch(0.65 0.15 145)" },
                     { label: "Atualizados", value: syncResult.atualizados, color: "oklch(0.85 0.18 95)" },
                     { label: "Ignorados", value: syncResult.ignorados, color: "oklch(0.55 0 0)" },
+                    { label: "Erros", value: syncResult.erros, color: "oklch(0.65 0.18 25)" },
                   ].map(({ label, value, color }) => (
                     <div
                       key={label}
@@ -424,13 +456,151 @@ export default function AdminPage() {
               </button>
             )}
 
-            {/* Dica */}
             {syncStep === "idle" && (
               <p className="text-xs text-center" style={{ color: "oklch(0.40 0 0)" }}>
-                As imagens e fornecedores já cadastrados serão preservados durante a sincronização.
+                As imagens e fornecedores já cadastrados serão preservados. Somente campos alterados serão atualizados.
               </p>
             )}
           </div>
+
+          {/* ── Histórico de sincronizações ── */}
+          {showHistory && (
+            <div
+              className="border-t"
+              style={{ borderColor: "oklch(0.85 0.18 95 / 0.20)", background: "oklch(0.11 0 0)" }}
+            >
+              <div className="px-5 py-3 flex items-center gap-2">
+                <History size={14} style={{ color: "oklch(0.85 0.18 95)" }} />
+                <span className="text-sm font-semibold" style={{ color: "oklch(0.85 0.18 95)" }}>
+                  Últimas Sincronizações
+                </span>
+              </div>
+
+              {!syncHistoryData || syncHistoryData.length === 0 ? (
+                <div className="px-5 pb-5 text-center">
+                  <p className="text-xs" style={{ color: "oklch(0.45 0 0)" }}>Nenhuma sincronização registrada ainda.</p>
+                </div>
+              ) : (
+                <div className="divide-y" style={{ borderColor: "oklch(0.18 0 0)" }}>
+                  {(syncHistoryData as SyncHistoryItem[]).map((item) => {
+                    const isExpanded = expandedHistoryId === item.id;
+                    const detalhes = item.detalhes ? (() => { try { return JSON.parse(item.detalhes); } catch { return null; } })() : null;
+
+                    return (
+                      <div key={item.id} className="px-5 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* Badge de status */}
+                              <span
+                                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{
+                                  background: item.status === "completed"
+                                    ? "oklch(0.55 0.15 145 / 0.20)"
+                                    : item.status === "error"
+                                    ? "oklch(0.55 0.18 25 / 0.20)"
+                                    : "oklch(0.55 0.15 220 / 0.20)",
+                                  color: item.status === "completed"
+                                    ? "oklch(0.65 0.15 145)"
+                                    : item.status === "error"
+                                    ? "oklch(0.65 0.18 25)"
+                                    : "oklch(0.65 0.15 220)",
+                                }}
+                              >
+                                {item.status === "completed" ? "Concluído" : item.status === "error" ? "Erro" : "Processando"}
+                              </span>
+                              <span className="text-xs font-medium truncate" style={{ color: "oklch(0.75 0 0)" }}>
+                                {item.fileName}
+                              </span>
+                            </div>
+                            <p className="text-xs mt-1" style={{ color: "oklch(0.45 0 0)" }}>
+                              {formatDate(item.createdAt)}
+                              {item.completedAt && ` — concluído em ${formatDate(item.completedAt)}`}
+                            </p>
+                            {item.status === "completed" && (
+                              <div className="flex gap-3 mt-1.5 flex-wrap">
+                                <span className="text-xs" style={{ color: "oklch(0.65 0.15 145)" }}>+{item.adicionados ?? 0} adicionados</span>
+                                <span className="text-xs" style={{ color: "oklch(0.85 0.18 95)" }}>~{item.atualizados ?? 0} atualizados</span>
+                                <span className="text-xs" style={{ color: "oklch(0.50 0 0)" }}>{item.ignorados ?? 0} sem alteração</span>
+                                {(item.erros ?? 0) > 0 && <span className="text-xs" style={{ color: "oklch(0.65 0.18 25)" }}>{item.erros} erros</span>}
+                              </div>
+                            )}
+                            {item.status === "error" && item.errorMessage && (
+                              <p className="text-xs mt-1" style={{ color: "oklch(0.65 0.18 25)" }}>{item.errorMessage}</p>
+                            )}
+                          </div>
+
+                          {/* Botão expandir detalhes */}
+                          {detalhes && (
+                            <button
+                              onClick={() => setExpandedHistoryId(isExpanded ? null : item.id)}
+                              className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
+                              style={{ color: "oklch(0.55 0 0)", background: "oklch(0.16 0 0)" }}
+                              title="Ver detalhes"
+                            >
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Detalhes expandidos */}
+                        {isExpanded && detalhes && (
+                          <div
+                            className="mt-3 rounded-lg p-3 space-y-3"
+                            style={{ background: "oklch(0.14 0 0)", border: "1px solid oklch(0.22 0 0)" }}
+                          >
+                            {detalhes.adicionados?.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold mb-1.5" style={{ color: "oklch(0.65 0.15 145)" }}>
+                                  Itens adicionados ({detalhes.adicionados.length}{detalhes.adicionados.length === 100 ? "+" : ""}):
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {detalhes.adicionados.slice(0, 30).map((cod: string) => (
+                                    <span key={cod} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "oklch(0.55 0.15 145 / 0.15)", color: "oklch(0.65 0.15 145)" }}>
+                                      {cod}
+                                    </span>
+                                  ))}
+                                  {detalhes.adicionados.length > 30 && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ color: "oklch(0.45 0 0)" }}>
+                                      +{detalhes.adicionados.length - 30} mais...
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {detalhes.atualizados?.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold mb-1.5" style={{ color: "oklch(0.85 0.18 95)" }}>
+                                  Itens atualizados ({detalhes.atualizados.length}{detalhes.atualizados.length === 100 ? "+" : ""}):
+                                </p>
+                                <div className="space-y-1">
+                                  {detalhes.atualizados.slice(0, 15).map((item: { codigo: string; campos: string[] }) => (
+                                    <div key={item.codigo} className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs font-mono" style={{ color: "oklch(0.75 0 0)" }}>{item.codigo}</span>
+                                      <div className="flex gap-1 flex-wrap">
+                                        {item.campos.map((campo: string) => (
+                                          <span key={campo} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "oklch(0.85 0.18 95 / 0.12)", color: "oklch(0.85 0.18 95)" }}>
+                                            {campo}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {detalhes.atualizados.length > 15 && (
+                                    <p className="text-xs" style={{ color: "oklch(0.45 0 0)" }}>+{detalhes.atualizados.length - 15} mais...</p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════

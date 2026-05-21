@@ -58,3 +58,23 @@ export const equipamentos = mysqlTable("equipamentos", {
 });
 export type Equipamento = typeof equipamentos.$inferSelect;
 export type InsertEquipamento = typeof equipamentos.$inferInsert;
+
+/**
+ * Tabela de histórico de sincronizações com Excel
+ */
+export const syncHistory = mysqlTable("sync_history", {
+  id: int("id").autoincrement().primaryKey(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["processing", "completed", "error"]).default("processing").notNull(),
+  totalRows: int("totalRows").default(0),
+  adicionados: int("adicionados").default(0),
+  atualizados: int("atualizados").default(0),
+  ignorados: int("ignorados").default(0),
+  erros: int("erros").default(0),
+  detalhes: text("detalhes"), // JSON com lista de alterações detalhadas
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+export type SyncHistory = typeof syncHistory.$inferSelect;
+export type InsertSyncHistory = typeof syncHistory.$inferInsert;

@@ -45,3 +45,7 @@
 - [x] Paginação aprimorada: ir para primeira/última página, campo "ir para página", seletor de itens por página (12/24/48/96)
 - [x] Indicador de progresso visual (ex: "Página 3 de 238 — 5.689 itens")
 - [x] Scroll automático ao topo ao trocar de página
+- [x] Criar tabela sync_history no banco para registrar histórico de sincronizações
+- [x] Criar endpoint de upload e processamento do Excel com relatório detalhado de diferenças
+- [x] Criar interface de sincronização no Admin com upload drag-and-drop, barra de progresso e histórico
+- [x] Exibir diff detalhado: itens adicionados, atualizados (com campos alterados) e removidos
