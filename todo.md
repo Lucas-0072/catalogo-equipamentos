@@ -49,3 +49,5 @@
 - [x] Criar endpoint de upload e processamento do Excel com relatório detalhado de diferenças
 - [x] Criar interface de sincronização no Admin com upload drag-and-drop, barra de progresso e histórico
 - [x] Exibir diff detalhado: itens adicionados, atualizados (com campos alterados) e removidos
+- [x] Corrigir bug de inserir imagem (state assíncrono + endpoints sem autenticação)
+- [x] Implementar botão para excluir imagem do equipamento

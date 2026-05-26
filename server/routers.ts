@@ -28,7 +28,7 @@ export const appRouter = router({
       return db.select().from(fornecedores).orderBy(fornecedores.nome);
     }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         nome: z.string().min(1),
         logo: z.string().optional(),
@@ -43,7 +43,7 @@ export const appRouter = router({
         return { id: result.insertId };
       }),
 
-    update: protectedProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         nome: z.string().min(1).optional(),
@@ -60,7 +60,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -189,7 +189,7 @@ export const appRouter = router({
         };
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         codigo: z.string().min(1),
         descricao: z.string().min(1),
@@ -215,7 +215,7 @@ export const appRouter = router({
         return { id: result.insertId };
       }),
 
-    update: protectedProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         descricao: z.string().optional(),
@@ -240,7 +240,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -273,7 +273,7 @@ export const appRouter = router({
         return result.filter((r: { subgrupo: string | null; subgrupoNome: string | null; grupo: string | null }) => r.subgrupo);
       }),
 
-    uploadImagem: protectedProcedure
+    uploadImagem: publicProcedure
       .input(z.object({
         id: z.number(),
         imageBase64: z.string(),
@@ -291,7 +291,7 @@ export const appRouter = router({
       }),
 
     // Sincronização com Excel com histórico detalhado
-    syncExcel: protectedProcedure
+    syncExcel: publicProcedure
       .input(z.object({
         fileName: z.string(),
         rows: z.array(z.object({

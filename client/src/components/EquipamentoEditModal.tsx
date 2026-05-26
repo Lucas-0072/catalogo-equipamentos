@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { X, Save, Loader2, Upload, Package } from "lucide-react";
+import { X, Save, Loader2, Upload, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -31,8 +31,28 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(equipamento.imagem ?? null);
   const [saving, setSaving] = useState(false);
+  const [removingImage, setRemovingImage] = useState(false);
 
   const updateMutation = trpc.equipamentos.update.useMutation();
+
+  const handleRemoveImage = async () => {
+    if (!imagePreview) return;
+    setRemovingImage(true);
+    try {
+      await updateMutation.mutateAsync({
+        id: equipamento.id,
+        imagem: null,
+      });
+      setImagePreview(null);
+      setImageFile(null);
+      await utils.equipamentos.list.invalidate();
+      toast.success("Imagem removida com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao remover imagem.");
+    } finally {
+      setRemovingImage(false);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,6 +66,9 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Captura a URL final da imagem (local ou nova do storage)
+      let finalImageUrl: string | null = imagePreview;
+
       // Upload de imagem via multipart/form-data (suporta qualquer tamanho)
       if (imageFile) {
         const formData = new FormData();
@@ -55,25 +78,29 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
           body: formData,
         });
         if (!resp.ok) {
-          const err = await resp.json().catch(() => ({ error: resp.statusText }));
-          throw new Error(err.error ?? "Erro no upload da imagem");
+          const text = await resp.text().catch(() => resp.statusText);
+          let errMsg = "Erro no upload da imagem";
+          try { errMsg = JSON.parse(text)?.error ?? errMsg; } catch {}
+          throw new Error(errMsg);
         }
-        const { url } = await resp.json();
-        // Atualizar preview com URL real do storage
-        setImagePreview(url);
+        const data = await resp.json();
+        finalImageUrl = data.url ?? null;
+        // Atualizar preview com URL real do storage (sem depender do state assíncrono)
+        setImagePreview(finalImageUrl);
       }
 
-      // Atualizar dados do equipamento
+      // Atualizar dados do equipamento (incluindo a URL da imagem se houve upload)
       await updateMutation.mutateAsync({
         id: equipamento.id,
         ...form,
         ncm: form.ncm || null,
         unidade: form.unidade || null,
+        imagem: finalImageUrl,
       });
 
       await utils.equipamentos.list.invalidate();
       toast.success("Equipamento atualizado com sucesso!");
-      onSaved({ ...equipamento, ...form, imagem: imagePreview });
+      onSaved({ ...equipamento, ...form, imagem: finalImageUrl });
       onClose();
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao salvar equipamento.");
@@ -159,20 +186,40 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
                   <Package size={28} style={{ color: "oklch(0.35 0 0)" }} />
                 )}
               </div>
-              <label
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors"
-                style={{
-                  background: "oklch(0.85 0.18 95 / 0.12)",
-                  border: "1px solid oklch(0.85 0.18 95 / 0.35)",
-                  color: "oklch(0.85 0.18 95)",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.85 0.18 95 / 0.22)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.85 0.18 95 / 0.12)")}
-              >
-                <Upload size={14} />
-                Alterar imagem
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-              </label>
+              <div className="flex flex-col gap-2">
+                <label
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors"
+                  style={{
+                    background: "oklch(0.85 0.18 95 / 0.12)",
+                    border: "1px solid oklch(0.85 0.18 95 / 0.35)",
+                    color: "oklch(0.85 0.18 95)",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.85 0.18 95 / 0.22)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.85 0.18 95 / 0.12)")}
+                >
+                  <Upload size={14} />
+                  {imagePreview ? "Alterar imagem" : "Adicionar imagem"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                </label>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    disabled={removingImage}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    style={{
+                      background: "oklch(0.35 0.15 15 / 0.15)",
+                      border: "1px solid oklch(0.55 0.18 15 / 0.40)",
+                      color: "oklch(0.70 0.18 15)",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.35 0.15 15 / 0.28)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.35 0.15 15 / 0.15)")}
+                  >
+                    {removingImage ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    Excluir imagem
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

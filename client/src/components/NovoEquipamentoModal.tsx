@@ -109,8 +109,10 @@ export default function NovoEquipamentoModal({ onClose, onCreated }: Props) {
           body: formData,
         });
         if (!resp.ok) {
-          const err = await resp.json().catch(() => ({ error: resp.statusText }));
-          throw new Error(err.error ?? "Erro no upload da imagem");
+          const text = await resp.text().catch(() => resp.statusText);
+          let errMsg = "Erro no upload da imagem";
+          try { errMsg = JSON.parse(text)?.error ?? errMsg; } catch {}
+          throw new Error(errMsg);
         }
         const uploaded = await resp.json();
         imagemUrl = uploaded.url;
