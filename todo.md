@@ -51,3 +51,5 @@
 - [x] Exibir diff detalhado: itens adicionados, atualizados (com campos alterados) e removidos
 - [x] Corrigir bug de inserir imagem (state assíncrono + endpoints sem autenticação)
 - [x] Implementar botão para excluir imagem do equipamento
+- [x] Corrigir redirecionamento após login (erro 404 após callback OAuth)
+- [x] Implementar teste automatizado para validar o fluxo OAuth/callback/redirecionamento

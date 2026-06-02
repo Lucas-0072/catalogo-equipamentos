@@ -41,10 +41,16 @@ export function registerOAuthRoutes(app: Express) {
         expiresInMs: ONE_YEAR_MS,
       });
 
-      const cookieOptions = getSessionCookieOptions(req);
+            const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      res.redirect(302, "/");
+      // Extrair o redirectUri do state (codificado em base64)
+      let redirectUri = "/";
+      try {
+        redirectUri = atob(state);
+      } catch {
+        // Se falhar decodificar, usar raiz como fallback
+      }
+      res.redirect(302, redirectUri);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
