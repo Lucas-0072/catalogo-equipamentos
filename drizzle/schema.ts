@@ -60,6 +60,21 @@ export type Equipamento = typeof equipamentos.$inferSelect;
 export type InsertEquipamento = typeof equipamentos.$inferInsert;
 
 /**
+ * Tabela de departamentos com login/senha
+ */
+export const departamentos = mysqlTable("departamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 100 }).notNull().unique(),
+  login: varchar("login", { length: 50 }).notNull().unique(),
+  senhaHash: varchar("senhaHash", { length: 255 }).notNull(),
+  ativo: mysqlEnum("ativo", ["sim", "nao"]).default("sim").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Departamento = typeof departamentos.$inferSelect;
+export type InsertDepartamento = typeof departamentos.$inferInsert;
+
+/**
  * Tabela de histórico de sincronizações com Excel
  */
 export const syncHistory = mysqlTable("sync_history", {

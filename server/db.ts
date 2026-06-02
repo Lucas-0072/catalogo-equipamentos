@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, departamentos, Departamento } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import * as bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -90,3 +91,73 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
+// ── Departamentos ──────────────────────────────────────────────────────────
+
+export async function getDepartamentoByLogin(login: string): Promise<Departamento | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get departamento: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(departamentos)
+    .where(eq(departamentos.login, login))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function listDepartamentos(): Promise<Departamento[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot list departamentos: database not available");
+    return [];
+  }
+
+  return await db.select().from(departamentos);
+}
+
+export async function createDepartamento(nome: string, login: string, senha: string): Promise<Departamento> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const senhaHash = await bcrypt.hash(senha, 10);
+
+  const result = await db.insert(departamentos).values({
+    nome,
+    login,
+    senhaHash,
+    ativo: "sim",
+  });
+
+  const id = result[0].insertId as number;
+  const dept = await db.select().from(departamentos).where(eq(departamentos.id, id)).limit(1);
+  return dept[0];
+}
+
+export async function updateDepartamento(id: number, updates: Partial<{ nome: string; login: string; senhaHash: string; ativo: "sim" | "nao" }>): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.update(departamentos).set(updates).where(eq(departamentos.id, id));
+}
+
+export async function deleteDepartamento(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(departamentos).where(eq(departamentos.id, id));
+}
+
+export async function validarSenhaDepartamento(senhaHash: string, senha: string): Promise<boolean> {
+  return await bcrypt.compare(senha, senhaHash);
+}

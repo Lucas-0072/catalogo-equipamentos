@@ -54,3 +54,12 @@
 - [x] Corrigir redirecionamento após login (erro 404 após callback OAuth)
 - [x] Implementar teste automatizado para validar o fluxo OAuth/callback/redirecionamento
 - [x] Remover exibição de NCM do frontend (modais e página de detalhes)
+
+## Autenticação por Departamento
+
+- [x] Criar tabela de departamentos no banco de dados (nome, login, senha hash)
+- [x] Implementar endpoints de login/logout por departamento com bcrypt
+- [x] Criar tela de login com seleção de departamento (Gestão, Almoxarifado)
+- [x] Testar fluxo completo de login por departamento (8 testes automatizados passando)
+- [ ] Proteger rotas com autenticação de departamento
+- [ ] Adicionar painel de gerenciamento de departamentos no Admin

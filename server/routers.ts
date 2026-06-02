@@ -3,11 +3,13 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import * as db from "./db";
 import { equipamentos, fornecedores, syncHistory } from "../drizzle/schema";
 import type { Equipamento, Fornecedor } from "../drizzle/schema";
 import { eq, like, or, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { storagePut } from "./storage";
+import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
   system: systemRouter,
@@ -18,6 +20,72 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    loginDepartamento: publicProcedure
+      .input(z.object({
+        login: z.string().min(1),
+        senha: z.string().min(1),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const departamento = await db.getDepartamentoByLogin(input.login);
+        if (!departamento) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciais inválidas" });
+        }
+        if (departamento.ativo !== "sim") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Departamento inativo" });
+        }
+        // Comparar senha com bcrypt
+        const senhaValida = await db.validarSenhaDepartamento(departamento.senhaHash, input.senha);
+        if (!senhaValida) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciais inválidas" });
+        }
+        // Criar cookie de sessão com departamento
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ departamentoId: departamento.id, departamentoNome: departamento.nome }), {
+          ...cookieOptions,
+          maxAge: 24 * 60 * 60 * 1000, // 24 horas
+        });
+        return { id: departamento.id, nome: departamento.nome };
+      }),
+    logoutDepartamento: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
+  }),
+
+  // ── Departamentos ──────────────────────────────────────────────────────────
+  departamentos: router({
+    list: publicProcedure.query(async () => {
+      return await db.listDepartamentos();
+    }),
+    create: publicProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        login: z.string().min(1),
+        senha: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createDepartamento(input.nome, input.login, input.senha);
+      }),
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().optional(),
+        login: z.string().optional(),
+        senha: z.string().optional(),
+        ativo: z.enum(["sim", "nao"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...updates } = input;
+        await db.updateDepartamento(id, updates);
+        return { success: true };
+      }),
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteDepartamento(input.id);
+        return { success: true };
+      }),
   }),
 
   // ── Fornecedores ──────────────────────────────────────────────────────────
