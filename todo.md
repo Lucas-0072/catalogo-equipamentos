@@ -61,5 +61,5 @@
 - [x] Implementar endpoints de login/logout por departamento com bcrypt
 - [x] Criar tela de login com seleção de departamento (Gestão, Almoxarifado)
 - [x] Testar fluxo completo de login por departamento (8 testes automatizados passando)
-- [ ] Proteger rotas com autenticação de departamento
-- [ ] Adicionar painel de gerenciamento de departamentos no Admin
+- [x] Proteger rotas com autenticação de departamento (endpoints protegidos com bcrypt)
+- [x] Adicionar painel de gerenciamento de departamentos no Admin

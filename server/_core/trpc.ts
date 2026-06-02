@@ -43,3 +43,20 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+const requireDepartamento = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.departamento) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      departamento: ctx.departamento,
+    },
+  });
+});
+
+export const departamentoProcedure = t.procedure.use(requireDepartamento);
