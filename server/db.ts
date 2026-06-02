@@ -140,7 +140,7 @@ export async function createDepartamento(nome: string, login: string, senha: str
   return dept[0];
 }
 
-export async function updateDepartamento(id: number, updates: Partial<{ nome: string; login: string; senhaHash: string; ativo: "sim" | "nao" }>): Promise<void> {
+export async function updateDepartamento(id: number, updates: Partial<{ nome: string; login: string; senhaHash: string; ativo: "sim" | "nao"; podeEditar: "sim" | "nao"; podeCriar: "sim" | "nao"; podeDeletar: "sim" | "nao"; podeSincronizar: "sim" | "nao" }>): Promise<void> {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");

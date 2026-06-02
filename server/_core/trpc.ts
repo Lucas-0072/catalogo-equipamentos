@@ -61,17 +61,16 @@ const requireDepartamento = t.middleware(async opts => {
 
 export const departamentoProcedure = t.procedure.use(requireDepartamento);
 
-const requireWritePermission = t.middleware(async opts => {
+// Middleware de permissões granulares
+const requireEditPermission = t.middleware(async opts => {
   const { ctx, next } = opts;
 
   if (!ctx.departamento) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
   }
 
-  // Apenas Gestão e Almoxarifado podem fazer modificações
-  const WRITE_ALLOWED_DEPTS = ["gestao", "almoxarifado"];
-  if (!WRITE_ALLOWED_DEPTS.includes(ctx.departamento.login)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para fazer modificações. Apenas leitura é permitida." });
+  if (ctx.departamento.podeEditar !== "sim") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para editar equipamentos." });
   }
 
   return next({
@@ -82,4 +81,68 @@ const requireWritePermission = t.middleware(async opts => {
   });
 });
 
-export const departamentoWriteProcedure = t.procedure.use(requireWritePermission);
+const requireCreatePermission = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.departamento) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
+  }
+
+  if (ctx.departamento.podeCriar !== "sim") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para criar equipamentos." });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      departamento: ctx.departamento,
+    },
+  });
+});
+
+const requireDeletePermission = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.departamento) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
+  }
+
+  if (ctx.departamento.podeDeletar !== "sim") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para deletar equipamentos." });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      departamento: ctx.departamento,
+    },
+  });
+});
+
+const requireSyncPermission = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.departamento) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
+  }
+
+  if (ctx.departamento.podeSincronizar !== "sim") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para sincronizar equipamentos." });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      departamento: ctx.departamento,
+    },
+  });
+});
+
+// Procedures com permissões específicas
+export const departamentoEditProcedure = t.procedure.use(requireEditPermission);
+export const departamentoCreateProcedure = t.procedure.use(requireCreatePermission);
+export const departamentoDeleteProcedure = t.procedure.use(requireDeletePermission);
+export const departamentoSyncProcedure = t.procedure.use(requireSyncPermission);
+
+// Procedure genérica de escrita (usa edit permission)
+export const departamentoWriteProcedure = t.procedure.use(requireEditPermission);

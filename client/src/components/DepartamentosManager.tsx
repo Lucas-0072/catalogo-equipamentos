@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Plus, Trash2, Save, Loader2, X, AlertCircle, Key } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, X, AlertCircle, Key, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 interface Departamento {
@@ -8,6 +8,10 @@ interface Departamento {
   nome: string;
   login: string;
   ativo: "sim" | "nao";
+  podeEditar: "sim" | "nao";
+  podeCriar: "sim" | "nao";
+  podeDeletar: "sim" | "nao";
+  podeSincronizar: "sim" | "nao";
   createdAt: Date;
 }
 
@@ -29,6 +33,7 @@ export default function DepartamentosManager() {
   const [form, setForm] = useState({ nome: "", login: "", senha: "" });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const handleCreate = async () => {
     if (!form.nome.trim() || !form.login.trim() || !form.senha.trim()) {
@@ -65,6 +70,25 @@ export default function DepartamentosManager() {
     }
   };
 
+  const handleTogglePermission = async (dept: Departamento, permission: "podeEditar" | "podeCriar" | "podeDeletar" | "podeSincronizar") => {
+    try {
+      const currentValue = dept[permission];
+      await updateMutation.mutateAsync({
+        id: dept.id,
+        [permission]: currentValue === "sim" ? "nao" : "sim",
+      });
+      const permissionLabel = {
+        podeEditar: "Editar",
+        podeCriar: "Criar",
+        podeDeletar: "Deletar",
+        podeSincronizar: "Sincronizar",
+      }[permission];
+      toast.success(`Permissão de ${permissionLabel} ${currentValue === "sim" ? "removida" : "adicionada"}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao atualizar permissão");
+    }
+  };
+
   const handleDelete = async (id: number, nome: string) => {
     if (!confirm(`Tem certeza que deseja deletar "${nome}"?`)) return;
 
@@ -97,6 +121,18 @@ export default function DepartamentosManager() {
     display: "block",
   };
 
+  const permissionButtonStyle = (isActive: boolean) => ({
+    background: isActive ? "oklch(0.85 0.18 95 / 0.15)" : "oklch(0.22 0 0)",
+    color: isActive ? "oklch(0.85 0.18 95)" : "oklch(0.50 0 0)",
+    border: `1px solid ${isActive ? "oklch(0.85 0.18 95 / 0.30)" : "oklch(0.28 0 0)"}`,
+    borderRadius: "6px",
+    padding: "6px 12px",
+    fontSize: "12px",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all 0.2s",
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -106,7 +142,7 @@ export default function DepartamentosManager() {
             Gerenciar Departamentos
           </h2>
           <p className="text-xs mt-1" style={{ color: "oklch(0.50 0 0)" }}>
-            Crie e gerencie logins de departamentos
+            Crie departamentos e controle suas permissões de acesso
           </p>
         </div>
         <button
@@ -222,46 +258,98 @@ export default function DepartamentosManager() {
       ) : (
         <div className="grid gap-3">
           {departamentos.map(dept => (
-            <div
-              key={dept.id}
-              className="rounded-lg border p-4 flex items-center justify-between"
-              style={{
-                background: "oklch(0.12 0 0)",
-                borderColor: dept.ativo === "sim" ? "oklch(0.85 0.18 95 / 0.30)" : "oklch(0.22 0 0)",
-              }}
-            >
-              <div className="flex-1">
-                <p className="font-semibold" style={{ color: "oklch(0.85 0.18 95)" }}>
-                  {dept.nome}
-                </p>
-                <p className="text-xs mt-1 flex items-center gap-2" style={{ color: "oklch(0.50 0 0)" }}>
-                  <Key size={12} />
-                  {dept.login}
-                </p>
+            <div key={dept.id}>
+              <div
+                className="rounded-lg border p-4 flex items-center justify-between cursor-pointer hover:border-opacity-100 transition-all"
+                onClick={() => setExpandedId(expandedId === dept.id ? null : dept.id)}
+                style={{
+                  background: "oklch(0.12 0 0)",
+                  borderColor: dept.ativo === "sim" ? "oklch(0.85 0.18 95 / 0.30)" : "oklch(0.22 0 0)",
+                }}
+              >
+                <div className="flex-1">
+                  <p className="font-semibold" style={{ color: "oklch(0.85 0.18 95)" }}>
+                    {dept.nome}
+                  </p>
+                  <p className="text-xs mt-1 flex items-center gap-2" style={{ color: "oklch(0.50 0 0)" }}>
+                    <Key size={12} />
+                    {dept.login}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleActive(dept);
+                    }}
+                    className="px-3 py-1 rounded text-xs font-medium transition-all"
+                    style={{
+                      background: dept.ativo === "sim" ? "oklch(0.85 0.18 95 / 0.15)" : "oklch(0.45 0.15 25 / 0.15)",
+                      color: dept.ativo === "sim" ? "oklch(0.85 0.18 95)" : "oklch(0.70 0.18 15)",
+                    }}
+                  >
+                    {dept.ativo === "sim" ? "Ativo" : "Inativo"}
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(dept.id, dept.nome);
+                    }}
+                    className="p-2 rounded text-xs transition-all"
+                    style={{ color: "oklch(0.55 0 0)" }}
+                    onMouseEnter={e => (e.currentTarget.style.color = "oklch(0.70 0.18 15)")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.55 0 0)")}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleToggleActive(dept)}
-                  className="px-3 py-1 rounded text-xs font-medium transition-all"
+              {/* Permissões expandidas */}
+              {expandedId === dept.id && (
+                <div
+                  className="rounded-b-lg border border-t-0 p-4 space-y-3"
                   style={{
-                    background: dept.ativo === "sim" ? "oklch(0.85 0.18 95 / 0.15)" : "oklch(0.45 0.15 25 / 0.15)",
-                    color: dept.ativo === "sim" ? "oklch(0.85 0.18 95)" : "oklch(0.70 0.18 15)",
+                    background: "oklch(0.10 0 0)",
+                    borderColor: "oklch(0.22 0 0)",
                   }}
                 >
-                  {dept.ativo === "sim" ? "Ativo" : "Inativo"}
-                </button>
-
-                <button
-                  onClick={() => handleDelete(dept.id, dept.nome)}
-                  className="p-2 rounded text-xs transition-all"
-                  style={{ color: "oklch(0.55 0 0)" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "oklch(0.70 0.18 15)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.55 0 0)")}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+                  <div>
+                    <p className="text-xs font-semibold mb-2" style={{ color: "oklch(0.70 0 0)" }}>
+                      <Lock size={12} className="inline mr-1" />
+                      PERMISSÕES DE ACESSO
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleTogglePermission(dept, "podeCriar")}
+                        style={permissionButtonStyle(dept.podeCriar === "sim")}
+                      >
+                        {dept.podeCriar === "sim" ? "✓ Pode Criar" : "✗ Pode Criar"}
+                      </button>
+                      <button
+                        onClick={() => handleTogglePermission(dept, "podeEditar")}
+                        style={permissionButtonStyle(dept.podeEditar === "sim")}
+                      >
+                        {dept.podeEditar === "sim" ? "✓ Pode Editar" : "✗ Pode Editar"}
+                      </button>
+                      <button
+                        onClick={() => handleTogglePermission(dept, "podeDeletar")}
+                        style={permissionButtonStyle(dept.podeDeletar === "sim")}
+                      >
+                        {dept.podeDeletar === "sim" ? "✓ Pode Deletar" : "✗ Pode Deletar"}
+                      </button>
+                      <button
+                        onClick={() => handleTogglePermission(dept, "podeSincronizar")}
+                        style={permissionButtonStyle(dept.podeSincronizar === "sim")}
+                      >
+                        {dept.podeSincronizar === "sim" ? "✓ Pode Sincronizar" : "✗ Pode Sincronizar"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

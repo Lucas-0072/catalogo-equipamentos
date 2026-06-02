@@ -71,3 +71,10 @@
 - [x] Proteger endpoint de sincronização Excel
 - [x] Proteger página Admin para apenas Gestão e Almoxarifado (via middleware)
 - [x] Adicionar testes de autorização por departamento (7 testes automatizados passando)
+
+## Permiss\u00f5es Configur\u00e1veis por Departamento
+
+- [x] Adicionar coluna de permiss\u00f5es na tabela de departamentos
+- [x] Atualizar middleware de autoriza\u00e7\u00e3o para usar permiss\u00f5es do banco
+- [x] Atualizar gerenciador de departamentos no Admin com controles de permiss\u00f5es
+- [x] Adicionar testes de permiss\u00f5es configur\u00e1veis

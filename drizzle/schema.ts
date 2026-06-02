@@ -68,6 +68,10 @@ export const departamentos = mysqlTable("departamentos", {
   login: varchar("login", { length: 50 }).notNull().unique(),
   senhaHash: varchar("senhaHash", { length: 255 }).notNull(),
   ativo: mysqlEnum("ativo", ["sim", "nao"]).default("sim").notNull(),
+  podeEditar: mysqlEnum("podeEditar", ["sim", "nao"]).default("nao").notNull(),
+  podeCriar: mysqlEnum("podeCriar", ["sim", "nao"]).default("nao").notNull(),
+  podeDeletar: mysqlEnum("podeDeletar", ["sim", "nao"]).default("nao").notNull(),
+  podeSincronizar: mysqlEnum("podeSincronizar", ["sim", "nao"]).default("nao").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

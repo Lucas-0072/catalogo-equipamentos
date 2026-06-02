@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router, departamentoWriteProcedure } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, departamentoWriteProcedure, departamentoCreateProcedure, departamentoDeleteProcedure, departamentoSyncProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import * as db from "./db";
 import { equipamentos, fornecedores, syncHistory } from "../drizzle/schema";
@@ -74,6 +74,10 @@ export const appRouter = router({
         login: z.string().optional(),
         senha: z.string().optional(),
         ativo: z.enum(["sim", "nao"]).optional(),
+        podeEditar: z.enum(["sim", "nao"]).optional(),
+        podeCriar: z.enum(["sim", "nao"]).optional(),
+        podeDeletar: z.enum(["sim", "nao"]).optional(),
+        podeSincronizar: z.enum(["sim", "nao"]).optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...updates } = input;
@@ -96,7 +100,7 @@ export const appRouter = router({
       return db.select().from(fornecedores).orderBy(fornecedores.nome);
     }),
 
-    create: departamentoWriteProcedure
+    create: departamentoCreateProcedure
       .input(z.object({
         nome: z.string().min(1),
         logo: z.string().optional(),
@@ -128,7 +132,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: departamentoWriteProcedure
+    delete: departamentoDeleteProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -257,7 +261,7 @@ export const appRouter = router({
         };
       }),
 
-    create: departamentoWriteProcedure
+    create: departamentoCreateProcedure
       .input(z.object({
         codigo: z.string().min(1),
         descricao: z.string().min(1),
@@ -308,7 +312,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: departamentoWriteProcedure
+    delete: departamentoDeleteProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -359,7 +363,7 @@ export const appRouter = router({
       }),
 
     // Sincronização com Excel com histórico detalhado
-    syncExcel: departamentoWriteProcedure
+    syncExcel: departamentoSyncProcedure
       .input(z.object({
         fileName: z.string(),
         rows: z.array(z.object({
