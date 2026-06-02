@@ -2,6 +2,7 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import type { User, Departamento } from "../../drizzle/schema";
 import { sdk } from "./sdk";
 import { COOKIE_NAME } from "@shared/const";
+import * as db from "../db";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -29,9 +30,11 @@ export async function createContext(
     try {
       const parsed = JSON.parse(cookieValue);
       if (parsed.departamentoId) {
-        // Nota: em produção, você deveria buscar o departamento do banco
-        // Por enquanto, apenas marcamos que há uma sessão de departamento
-        departamento = parsed as any;
+        // Carregar departamento real do banco
+        const dept = await db.getDepartamentoById(parsed.departamentoId);
+        if (dept) {
+          departamento = dept;
+        }
       }
     } catch (e) {
       // Cookie inválido, ignorar

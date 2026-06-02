@@ -161,3 +161,19 @@ export async function deleteDepartamento(id: number): Promise<void> {
 export async function validarSenhaDepartamento(senhaHash: string, senha: string): Promise<boolean> {
   return await bcrypt.compare(senha, senhaHash);
 }
+
+export async function getDepartamentoById(id: number): Promise<Departamento | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get departamento: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(departamentos)
+    .where(eq(departamentos.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}

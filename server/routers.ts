@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, departamentoWriteProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import * as db from "./db";
 import { equipamentos, fornecedores, syncHistory } from "../drizzle/schema";
@@ -40,7 +40,7 @@ export const appRouter = router({
         }
         // Criar cookie de sessão com departamento
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ departamentoId: departamento.id, departamentoNome: departamento.nome }), {
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ departamentoId: departamento.id, departamentoNome: departamento.nome, login: departamento.login }), {
           ...cookieOptions,
           maxAge: 24 * 60 * 60 * 1000, // 24 horas
         });
@@ -96,7 +96,7 @@ export const appRouter = router({
       return db.select().from(fornecedores).orderBy(fornecedores.nome);
     }),
 
-    create: publicProcedure
+    create: departamentoWriteProcedure
       .input(z.object({
         nome: z.string().min(1),
         logo: z.string().optional(),
@@ -111,7 +111,7 @@ export const appRouter = router({
         return { id: result.insertId };
       }),
 
-    update: publicProcedure
+    update: departamentoWriteProcedure
       .input(z.object({
         id: z.number(),
         nome: z.string().min(1).optional(),
@@ -128,7 +128,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: publicProcedure
+    delete: departamentoWriteProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -257,7 +257,7 @@ export const appRouter = router({
         };
       }),
 
-    create: publicProcedure
+    create: departamentoWriteProcedure
       .input(z.object({
         codigo: z.string().min(1),
         descricao: z.string().min(1),
@@ -283,7 +283,7 @@ export const appRouter = router({
         return { id: result.insertId };
       }),
 
-    update: publicProcedure
+    update: departamentoWriteProcedure
       .input(z.object({
         id: z.number(),
         descricao: z.string().optional(),
@@ -308,7 +308,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: publicProcedure
+    delete: departamentoWriteProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -341,7 +341,7 @@ export const appRouter = router({
         return result.filter((r: { subgrupo: string | null; subgrupoNome: string | null; grupo: string | null }) => r.subgrupo);
       }),
 
-    uploadImagem: publicProcedure
+    uploadImagem: departamentoWriteProcedure
       .input(z.object({
         id: z.number(),
         imageBase64: z.string(),
@@ -359,7 +359,7 @@ export const appRouter = router({
       }),
 
     // Sincronização com Excel com histórico detalhado
-    syncExcel: publicProcedure
+    syncExcel: departamentoWriteProcedure
       .input(z.object({
         fileName: z.string(),
         rows: z.array(z.object({

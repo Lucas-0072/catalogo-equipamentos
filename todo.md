@@ -63,3 +63,11 @@
 - [x] Testar fluxo completo de login por departamento (8 testes automatizados passando)
 - [x] Proteger rotas com autenticação de departamento (endpoints protegidos com bcrypt)
 - [x] Adicionar painel de gerenciamento de departamentos no Admin
+
+## Controle de Permissões por Departamento
+
+- [x] Criar middleware de autorização para departamentos com permissão de escrita
+- [x] Proteger endpoints de escrita (criar, editar, deletar equipamentos e fornecedores)
+- [x] Proteger endpoint de sincronização Excel
+- [x] Proteger página Admin para apenas Gestão e Almoxarifado (via middleware)
+- [x] Adicionar testes de autorização por departamento (7 testes automatizados passando)

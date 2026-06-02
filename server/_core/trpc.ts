@@ -60,3 +60,26 @@ const requireDepartamento = t.middleware(async opts => {
 });
 
 export const departamentoProcedure = t.procedure.use(requireDepartamento);
+
+const requireWritePermission = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.departamento) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
+  }
+
+  // Apenas Gestão e Almoxarifado podem fazer modificações
+  const WRITE_ALLOWED_DEPTS = ["gestao", "almoxarifado"];
+  if (!WRITE_ALLOWED_DEPTS.includes(ctx.departamento.login)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para fazer modificações. Apenas leitura é permitida." });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      departamento: ctx.departamento,
+    },
+  });
+});
+
+export const departamentoWriteProcedure = t.procedure.use(requireWritePermission);
