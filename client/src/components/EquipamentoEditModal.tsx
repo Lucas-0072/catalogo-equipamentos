@@ -262,30 +262,17 @@ export default function EquipamentoEditModal({ equipamento, onClose, onSaved }: 
             </div>
           </div>
 
-          {/* NCM + Unidade */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label style={labelStyle}>NCM</label>
-              <input
-                type="text"
-                value={form.ncm}
-                onChange={e => setForm(f => ({ ...f, ncm: e.target.value }))}
-                style={inputStyle}
-                onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
-                onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Unidade</label>
-              <input
-                type="text"
-                value={form.unidade}
-                onChange={e => setForm(f => ({ ...f, unidade: e.target.value }))}
-                style={inputStyle}
-                onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
-                onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
-              />
-            </div>
+          {/* Unidade */}
+          <div>
+            <label style={labelStyle}>Unidade</label>
+            <input
+              type="text"
+              value={form.unidade}
+              onChange={e => setForm(f => ({ ...f, unidade: e.target.value }))}
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
+              onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
+            />
           </div>
 
           {/* Grupo + Subgrupo */}

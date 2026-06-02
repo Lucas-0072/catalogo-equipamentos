@@ -53,3 +53,4 @@
 - [x] Implementar botão para excluir imagem do equipamento
 - [x] Corrigir redirecionamento após login (erro 404 após callback OAuth)
 - [x] Implementar teste automatizado para validar o fluxo OAuth/callback/redirecionamento
+- [x] Remover exibição de NCM do frontend (modais e página de detalhes)

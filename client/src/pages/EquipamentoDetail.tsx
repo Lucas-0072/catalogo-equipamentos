@@ -200,10 +200,6 @@ export default function EquipamentoDetail() {
                   <p style={{ color: "oklch(0.80 0 0)" }}>{equipamento.subgrupoNome || equipamento.subgrupo}</p>
                 </div>
                 <div>
-                  <p className="text-xs mb-0.5" style={{ color: "oklch(0.50 0 0)" }}>NCM</p>
-                  <p style={{ color: "oklch(0.80 0 0)" }}>{equipamento.ncm || "—"}</p>
-                </div>
-                <div>
                   <p className="text-xs mb-0.5" style={{ color: "oklch(0.50 0 0)" }}>IPI</p>
                   <p style={{ color: "oklch(0.80 0 0)" }}>{equipamento.ipi ? `${equipamento.ipi}%` : "—"}</p>
                 </div>

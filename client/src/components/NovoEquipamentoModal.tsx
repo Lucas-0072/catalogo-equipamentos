@@ -268,9 +268,8 @@ export default function NovoEquipamentoModal({ onClose, onCreated }: Props) {
             {field("referencia", "Referência", "Ex: ESTACOES-MP")}
           </div>
 
-          {/* NCM + Unidade */}
-          <div className="grid grid-cols-2 gap-4">
-            {field("ncm", "NCM", "Ex: 39251000")}
+          {/* Unidade */}
+          <div>
             {field("unidade", "Unidade", "Ex: PC, KG, UN")}
           </div>
 

@@ -166,13 +166,6 @@ export default function EquipamentoCard({ equipamento, onDeleted, onUpdated }: P
               {localData.descricao}
             </h3>
 
-            {/* NCM */}
-            {localData.ncm && localData.ncm !== "nan" && (
-              <p className="text-xs" style={{ color: "oklch(0.55 0 0)" }}>
-                NCM: {localData.ncm}
-              </p>
-            )}
-
             {/* Fornecedores */}
             {fornecedores.length > 0 ? (
               <div className="flex items-center gap-1.5 flex-wrap mt-1">
