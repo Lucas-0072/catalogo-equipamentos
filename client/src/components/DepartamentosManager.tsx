@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Plus, Trash2, Save, Loader2, X, AlertCircle, Key, Lock, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Departamento {
   id: number;
@@ -37,6 +38,8 @@ export default function DepartamentosManager() {
   const [editingNomeId, setEditingNomeId] = useState<number | null>(null);
   const [editingNomeValue, setEditingNomeValue] = useState("");
   const [savingNome, setSavingNome] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; nome: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleCreate = async () => {
     if (!form.nome.trim() || !form.login.trim() || !form.senha.trim()) {
@@ -92,14 +95,22 @@ export default function DepartamentosManager() {
     }
   };
 
-  const handleDelete = async (id: number, nome: string) => {
-    if (!confirm(`Tem certeza que deseja deletar "${nome}"?`)) return;
+  const handleDeleteClick = (id: number, nome: string) => {
+    setConfirmDelete({ id, nome });
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+
+    setDeletingId(confirmDelete.id);
     try {
-      await deleteMutation.mutateAsync({ id });
+      await deleteMutation.mutateAsync({ id: confirmDelete.id });
       toast.success("Departamento deletado com sucesso!");
+      setConfirmDelete(null);
     } catch (err: any) {
       toast.error(err?.message || "Erro ao deletar departamento");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -371,7 +382,7 @@ export default function DepartamentosManager() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(dept.id, dept.nome);
+                      handleDeleteClick(dept.id, dept.nome);
                     }}
                     className="p-2 rounded text-xs transition-all"
                     style={{ color: "oklch(0.55 0 0)" }}
@@ -430,6 +441,20 @@ export default function DepartamentosManager() {
           ))}
         </div>
       )}
+
+      {/* Diálogo de Confirmação */}
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        title="Deletar Departamento"
+        message={`Tem certeza que deseja deletar o departamento "${confirmDelete?.nome}"?`}
+        details="Esta ação não pode ser desfeita. Todos os dados associados a este departamento serão removidos do sistema."
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        isDangerous={true}
+        isLoading={deletingId === confirmDelete?.id}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Package, Building2, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import EquipamentoEditModal from "./EquipamentoEditModal";
+import ConfirmDialog from "./ConfirmDialog";
 import type { Equipamento, Fornecedor } from "../../../drizzle/schema";
 
 type EquipamentoWithFornecedores = Equipamento & {
@@ -209,81 +210,19 @@ export default function EquipamentoCard({ equipamento, onDeleted, onUpdated }: P
         />
       )}
 
-      {/* Confirmação de exclusão */}
-      {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "oklch(0 0 0 / 0.75)" }}
-          onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-4"
-            style={{
-              background: "oklch(0.12 0 0)",
-              border: "1px solid oklch(0.45 0.15 25 / 0.50)",
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "oklch(0.45 0.15 25 / 0.20)" }}
-              >
-                <Trash2 size={18} style={{ color: "oklch(0.65 0.15 25)" }} />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold" style={{ color: "oklch(0.90 0 0)" }}>
-                  Excluir equipamento?
-                </h3>
-                <p className="text-xs mt-0.5" style={{ color: "oklch(0.55 0 0)" }}>
-                  Esta ação não pode ser desfeita.
-                </p>
-              </div>
-            </div>
-
-            <p
-              className="text-xs px-3 py-2 rounded-lg"
-              style={{
-                background: "oklch(0.16 0 0)",
-                color: "oklch(0.75 0 0)",
-                border: "1px solid oklch(0.25 0 0)",
-              }}
-            >
-              <span className="font-mono font-semibold" style={{ color: "oklch(0.85 0.18 95)" }}>
-                #{localData.codigo}
-              </span>{" "}
-              — {localData.descricao?.slice(0, 60)}...
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{
-                  background: "oklch(0.18 0 0)",
-                  border: "1px solid oklch(0.28 0 0)",
-                  color: "oklch(0.65 0 0)",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: "oklch(0.45 0.15 25)", color: "oklch(0.95 0 0)" }}
-                onMouseEnter={e => { if (!deleting) (e.currentTarget.style.background = "oklch(0.35 0.15 25)"); }}
-                onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.45 0.15 25)")}
-              >
-                {deleting ? (
-                  <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Excluindo...</>
-                ) : (
-                  <><Trash2 size={13} /> Excluir</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Diálogo de Confirmação */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Excluir Equipamento"
+        message={`Tem certeza que deseja excluir o equipamento #${localData.codigo}?`}
+        details={`${localData.descricao?.slice(0, 80)}... Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isDangerous={true}
+        isLoading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </>
   );
 }

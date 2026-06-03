@@ -79,3 +79,5 @@
 - [x] Atualizar gerenciador de departamentos no Admin com controles de permiss\u00f5es
 - [x] Adicionar testes de permiss\u00f5es configur\u00e1veis
 - [x] Adicionar modo de edição para nomes de departamentos no gerenciador
+- [x] Implementar diálogo de confirmação melhorado para excluir departamentos
+- [x] Implementar diálogo de confirmação melhorado para excluir produtos/equipamentos
