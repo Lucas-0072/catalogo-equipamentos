@@ -1,7 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User, Departamento } from "../../drizzle/schema";
 import { sdk } from "./sdk";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, DEPARTAMENTO_COOKIE_NAME } from "@shared/const";
 import * as db from "../db";
 
 export type TrpcContext = {
@@ -25,7 +25,7 @@ export async function createContext(
   }
 
   // Verificar cookie de departamento
-  const cookieValue = opts.req.cookies?.[COOKIE_NAME];
+  const cookieValue = opts.req.cookies?.[DEPARTAMENTO_COOKIE_NAME];
   if (cookieValue) {
     try {
       const parsed = JSON.parse(cookieValue);

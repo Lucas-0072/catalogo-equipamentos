@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, DEPARTAMENTO_COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router, departamentoProcedure, departamentoWriteProcedure, departamentoCreateProcedure, departamentoDeleteProcedure, departamentoSyncProcedure } from "./_core/trpc";
@@ -40,7 +40,7 @@ export const appRouter = router({
         }
         // Criar cookie de sessão com departamento
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ departamentoId: departamento.id, departamentoNome: departamento.nome, login: departamento.login }), {
+        ctx.res.cookie(DEPARTAMENTO_COOKIE_NAME, JSON.stringify({ departamentoId: departamento.id, departamentoNome: departamento.nome, login: departamento.login }), {
           ...cookieOptions,
           maxAge: 24 * 60 * 60 * 1000, // 24 horas
         });
@@ -48,7 +48,7 @@ export const appRouter = router({
       }),
     logoutDepartamento: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(DEPARTAMENTO_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
   }),
