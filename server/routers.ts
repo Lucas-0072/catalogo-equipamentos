@@ -102,6 +102,9 @@ export const appRouter = router({
 
   // ── Departamentos ──────────────────────────────────────────────────────────
   departamentos: router({
+    me: departamentoProcedure.query(({ ctx }) => {
+      return ctx.departamento || null;
+    }),
     list: departamentoProcedure.query(async () => {
       return await db.listDepartamentos();
     }),
@@ -137,6 +140,11 @@ export const appRouter = router({
         await db.deleteDepartamento(input.id);
         return { success: true };
       }),
+    logout: departamentoProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(DEPARTAMENTO_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
   }),
 
   // ── Fornecedores ──────────────────────────────────────────────────────────

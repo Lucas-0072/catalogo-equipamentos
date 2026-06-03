@@ -104,5 +104,5 @@
 - [x] Implementar endpoints de recuperação de senha (solicitação e reset)
 - [x] Criar tela de login melhorada com link de recuperação de senha
 - [x] Criar página de reset de senha
-- [ ] Proteger rota do catálogo para exigir login
+- [x] Proteger rota do catálogo para exigir login de departamento
 - [x] Adicionar testes automatizados para recuperação de senha (61 testes passando)

@@ -3,8 +3,9 @@ import { useUndoRedo } from "../hooks/useUndoRedo";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import EquipamentoCard from "../components/EquipamentoCard";
-import { Search, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, X, Hash, FileText, SlidersHorizontal, Plus } from "lucide-react";
-import { useRef } from "react";
+import { Search, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, X, Hash, FileText, SlidersHorizontal, Plus, AlertCircle } from "lucide-react";
+import { useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import NovoEquipamentoModal from "../components/NovoEquipamentoModal";
 
 // ── Componentes auxiliares ──────────────────────────────────────────────────
@@ -126,6 +127,40 @@ function FilterPanel({
 // ── Página principal ────────────────────────────────────────────────────────
 
 export default function CatalogPage() {
+  const [, navigate] = useLocation();
+  const { data: departamento, isLoading: isDepartamentoLoading, isError: isDepartamentoError } = trpc.departamentos.me.useQuery();
+
+  useEffect(() => {
+    if (!isDepartamentoLoading && (isDepartamentoError || !departamento)) {
+      navigate("/login-departamento");
+    }
+  }, [departamento, isDepartamentoLoading, isDepartamentoError, navigate]);
+
+  if (isDepartamentoError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(0.10 0 0)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <AlertCircle className="w-8 h-8" style={{ color: "oklch(0.85 0.18 95)" }} />
+          <p style={{ color: "oklch(0.55 0 0)" }}>Erro ao carregar sessão. Por favor, faça login novamente.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isDepartamentoLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(0.10 0 0)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "oklch(0.85 0.18 95)" }} />
+          <p style={{ color: "oklch(0.55 0 0)" }}>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!departamento) {
+    return null;
+  }
   const [page, setPage] = useState(1);
   const [searchNome, setSearchNome] = useState("");
   const [searchCodigo, setSearchCodigo] = useState("");
