@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull, isNotNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, departamentos, Departamento } from "../drizzle/schema";
+import { InsertUser, users, departamentos, Departamento, equipamentos, Equipamento } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import * as bcrypt from "bcryptjs";
 
@@ -107,7 +107,7 @@ export async function getDepartamentoByLogin(login: string): Promise<Departament
     .where(eq(departamentos.login, login))
     .limit(1);
 
-  return result.length > 0 ? result[0] : undefined;
+  return result.length > 0 && !result[0].deletedAt ? result[0] : undefined;
 }
 
 export async function listDepartamentos(): Promise<Departamento[]> {
@@ -117,7 +117,7 @@ export async function listDepartamentos(): Promise<Departamento[]> {
     return [];
   }
 
-  return await db.select().from(departamentos);
+  return await db.select().from(departamentos).where(isNull(departamentos.deletedAt));
 }
 
 export async function createDepartamento(nome: string, login: string, senha: string): Promise<Departamento> {
@@ -155,7 +155,8 @@ export async function deleteDepartamento(id: number): Promise<void> {
     throw new Error("Database not available");
   }
 
-  await db.delete(departamentos).where(eq(departamentos.id, id));
+  // Soft delete: marca com deletedAt
+  await db.update(departamentos).set({ deletedAt: new Date() }).where(eq(departamentos.id, id));
 }
 
 export async function validarSenhaDepartamento(senhaHash: string, senha: string): Promise<boolean> {
@@ -175,5 +176,63 @@ export async function getDepartamentoById(id: number): Promise<Departamento | un
     .where(eq(departamentos.id, id))
     .limit(1);
 
-  return result.length > 0 ? result[0] : undefined;
+  return result.length > 0 && !result[0].deletedAt ? result[0] : undefined;
+}
+
+// ===== TRASH / LIXEIRA =====
+
+export async function listDeletedEquipamentos(): Promise<Equipamento[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot list deleted equipamentos: database not available");
+    return [];
+  }
+
+  return await db.select().from(equipamentos).where(isNotNull(equipamentos.deletedAt));
+}
+
+export async function listDeletedDepartamentos(): Promise<Departamento[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot list deleted departamentos: database not available");
+    return [];
+  }
+
+  return await db.select().from(departamentos).where(isNotNull(departamentos.deletedAt));
+}
+
+export async function restoreEquipamento(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.update(equipamentos).set({ deletedAt: null }).where(eq(equipamentos.id, id));
+}
+
+export async function restoreDepartamento(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.update(departamentos).set({ deletedAt: null }).where(eq(departamentos.id, id));
+}
+
+export async function permanentlyDeleteEquipamento(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(equipamentos).where(eq(equipamentos.id, id));
+}
+
+export async function permanentlyDeleteDepartamento(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(departamentos).where(eq(departamentos.id, id));
 }

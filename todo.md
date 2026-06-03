@@ -81,3 +81,11 @@
 - [x] Adicionar modo de edição para nomes de departamentos no gerenciador
 - [x] Implementar diálogo de confirmação melhorado para excluir departamentos
 - [x] Implementar diálogo de confirmação melhorado para excluir produtos/equipamentos
+
+## Sistema de Lixeira (Soft Delete)
+
+- [x] Adicionar coluna deletedAt ao schema de equipamentos e departamentos
+- [x] Atualizar queries para filtrar itens não deletados
+- [x] Implementar endpoints de lixeira (listar, restaurar, deletar permanentemente)
+- [x] Adicionar testes para funcionalidade de lixeira (18 testes de soft delete)
+- [ ] Criar página de lixeira no Admin

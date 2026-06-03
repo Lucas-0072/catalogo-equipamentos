@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as db from "./db";
 import * as bcrypt from "bcryptjs";
 
@@ -6,9 +6,23 @@ describe("Autenticação por Departamento", () => {
   let testDeptId: number;
 
   beforeAll(async () => {
+    // Limpar departamentos de teste anteriores (incluindo soft-deleted)
+    const existing = await db.getDepartamentoByLogin("testdept");
+    if (existing) {
+      // Deletar permanentemente
+      await db.permanentlyDeleteDepartamento(existing.id);
+    }
     // Criar um departamento de teste
     const dept = await db.createDepartamento("Test Dept", "testdept", "testpass123");
     testDeptId = dept.id;
+  });
+
+  afterAll(async () => {
+    // Limpar departamento de teste
+    const dept = await db.getDepartamentoByLogin("testdept");
+    if (dept) {
+      await db.permanentlyDeleteDepartamento(dept.id);
+    }
   });
 
   it("deve criar departamento com senha hash", async () => {
@@ -64,9 +78,22 @@ describe("Autenticação por Departamento", () => {
     expect(dept?.ativo).toBe("sim");
   });
 
-  it("deve deletar departamento", async () => {
+  it("deve fazer soft delete de departamento", async () => {
     await db.deleteDepartamento(testDeptId);
     const dept = await db.getDepartamentoByLogin("testdept");
     expect(dept).toBeUndefined();
+  });
+
+  it("deve listar departamentos deletados", async () => {
+    const deletedDepts = await db.listDeletedDepartamentos();
+    expect(Array.isArray(deletedDepts)).toBe(true);
+    // Pode ter departamentos deletados anteriormente
+  });
+
+  it("deve restaurar departamento deletado", async () => {
+    await db.restoreDepartamento(testDeptId);
+    const dept = await db.getDepartamentoByLogin("testdept");
+    expect(dept).toBeDefined();
+    expect(dept?.deletedAt).toBeNull();
   });
 });

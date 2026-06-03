@@ -55,6 +55,7 @@ export const equipamentos = mysqlTable("equipamentos", {
   fornecedor3Id: int("fornecedor3Id"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  deletedAt: timestamp("deletedAt"),
 });
 export type Equipamento = typeof equipamentos.$inferSelect;
 export type InsertEquipamento = typeof equipamentos.$inferInsert;
@@ -74,6 +75,7 @@ export const departamentos = mysqlTable("departamentos", {
   podeSincronizar: mysqlEnum("podeSincronizar", ["sim", "nao"]).default("nao").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  deletedAt: timestamp("deletedAt"),
 });
 export type Departamento = typeof departamentos.$inferSelect;
 export type InsertDepartamento = typeof departamentos.$inferInsert;

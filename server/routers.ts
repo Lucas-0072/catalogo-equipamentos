@@ -6,7 +6,7 @@ import { getDb } from "./db";
 import * as db from "./db";
 import { equipamentos, fornecedores, syncHistory } from "../drizzle/schema";
 import type { Equipamento, Fornecedor } from "../drizzle/schema";
-import { eq, like, or, and, sql } from "drizzle-orm";
+import { eq, like, or, and, sql, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { storagePut } from "./storage";
 import { TRPCError } from "@trpc/server";
@@ -187,6 +187,8 @@ export const appRouter = router({
         }
         if (grupo) conditions.push(eq(equipamentos.grupo, grupo));
         if (subgrupo) conditions.push(eq(equipamentos.subgrupo, subgrupo));
+        // Sempre filtrar itens deletados
+        conditions.push(isNull(equipamentos.deletedAt));
 
         const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -317,7 +319,8 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        await db.delete(equipamentos).where(eq(equipamentos.id, input.id));
+        // Soft delete: marca com deletedAt
+        await db.update(equipamentos).set({ deletedAt: new Date() }).where(eq(equipamentos.id, input.id));
         return { success: true };
       }),
 
@@ -327,6 +330,7 @@ export const appRouter = router({
       const result = await db
         .selectDistinct({ grupo: equipamentos.grupo, grupoNome: equipamentos.grupoNome })
         .from(equipamentos)
+        .where(isNull(equipamentos.deletedAt))
         .orderBy(equipamentos.grupo);
       return result.filter((r: { grupo: string | null; grupoNome: string | null }) => r.grupo);
     }),
@@ -336,7 +340,9 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) return [];
-        const where = input.grupo ? eq(equipamentos.grupo, input.grupo) : undefined;
+        const conditions = [isNull(equipamentos.deletedAt)];
+        if (input.grupo) conditions.push(eq(equipamentos.grupo, input.grupo));
+        const where = and(...conditions);
         const result = await db
           .selectDistinct({ subgrupo: equipamentos.subgrupo, subgrupoNome: equipamentos.subgrupoNome, grupo: equipamentos.grupo })
           .from(equipamentos)
@@ -528,6 +534,40 @@ export const appRouter = router({
         .orderBy(sql`${syncHistory.createdAt} DESC`)
         .limit(20);
     }),
+  }),
+
+  // Lixeira
+  trash: router({
+    listEquipamentos: departamentoWriteProcedure.query(async () => {
+      return await db.listDeletedEquipamentos();
+    }),
+    listDepartamentos: departamentoWriteProcedure.query(async () => {
+      return await db.listDeletedDepartamentos();
+    }),
+    restoreEquipamento: departamentoWriteProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.restoreEquipamento(input.id);
+        return { success: true };
+      }),
+    restoreDepartamento: departamentoWriteProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.restoreDepartamento(input.id);
+        return { success: true };
+      }),
+    permanentlyDeleteEquipamento: departamentoDeleteProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.permanentlyDeleteEquipamento(input.id);
+        return { success: true };
+      }),
+    permanentlyDeleteDepartamento: departamentoDeleteProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.permanentlyDeleteDepartamento(input.id);
+        return { success: true };
+      }),
   }),
 });
 
