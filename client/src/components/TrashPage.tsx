@@ -15,8 +15,8 @@ export function TrashPage() {
   const [showDeleteDeptDialog, setShowDeleteDeptDialog] = useState(false);
 
   // Queries
-  const { data: deletedEquipamentos = [], isLoading: loadingEquip, refetch: refetchEquip } = trpc.trash.listEquipamentos.useQuery();
-  const { data: deletedDepartamentos = [], isLoading: loadingDept, refetch: refetchDept } = trpc.trash.listDepartamentos.useQuery();
+  const { data: deletedEquipamentos = [], isLoading: loadingEquip, refetch: refetchEquip } = trpc.trash.listEquipamentos.useQuery(undefined, { enabled: false });
+  const { data: deletedDepartamentos = [], isLoading: loadingDept, refetch: refetchDept } = trpc.trash.listDepartamentos.useQuery(undefined, { enabled: false });
 
   // Mutations
   const restoreEquipMutation = trpc.trash.restoreEquipamento.useMutation({
