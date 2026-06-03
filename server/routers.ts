@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router, departamentoWriteProcedure, departamentoCreateProcedure, departamentoDeleteProcedure, departamentoSyncProcedure } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, departamentoProcedure, departamentoWriteProcedure, departamentoCreateProcedure, departamentoDeleteProcedure, departamentoSyncProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import * as db from "./db";
 import { equipamentos, fornecedores, syncHistory } from "../drizzle/schema";
@@ -55,7 +55,7 @@ export const appRouter = router({
 
   // ── Departamentos ──────────────────────────────────────────────────────────
   departamentos: router({
-    list: departamentoWriteProcedure.query(async () => {
+    list: departamentoProcedure.query(async () => {
       return await db.listDepartamentos();
     }),
     create: departamentoWriteProcedure
