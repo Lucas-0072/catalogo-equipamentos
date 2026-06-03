@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import Header from "../components/Header";
 import DepartamentosManager from "../components/DepartamentosManager";
+import { TrashPage } from "../components/TrashPage";
 import { useUndoRedo } from "../hooks/useUndoRedo";
 import {
   Plus, Trash2, Save, Building2, Loader2, X, Upload, FileSpreadsheet,
@@ -727,6 +728,13 @@ export default function AdminPage() {
         <div className="border-t" style={{ borderColor: "oklch(0.22 0 0)" }}>
           <div className="pt-8">
             <DepartamentosManager />
+          </div>
+        </div>
+
+        {/* Lixeira */}
+        <div className="border-t" style={{ borderColor: "oklch(0.22 0 0)" }}>
+          <div className="pt-8">
+            <TrashPage />
           </div>
         </div>
       </div>

@@ -88,4 +88,4 @@
 - [x] Atualizar queries para filtrar itens não deletados
 - [x] Implementar endpoints de lixeira (listar, restaurar, deletar permanentemente)
 - [x] Adicionar testes para funcionalidade de lixeira (18 testes de soft delete)
-- [ ] Criar página de lixeira no Admin
+- [x] Criar página de lixeira no Admin (com abas de navegação)
