@@ -132,6 +132,43 @@ export default function CatalogPage() {
     retry: false,
   });
 
+  const [page, setPage] = useState(1);
+  const [searchNome, setSearchNome] = useState("");
+  const [searchCodigo, setSearchCodigo] = useState("");
+  const [searchNomeInput, setSearchNomeInput] = useState("");
+  const [searchCodigoInput, setSearchCodigoInput] = useState("");
+  const [selectedGrupo, setSelectedGrupo] = useState("");
+  const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [novoModalOpen, setNovoModalOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(24);
+  const [goToPage, setGoToPage] = useState("");
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  const { canUndo, canRedo, undo, redo } = useUndoRedo();
+  const utils = trpc.useUtils();
+
+  const { data: grupos } = trpc.equipamentos.grupos.useQuery();
+  const { data: subgrupos } = trpc.equipamentos.subgrupos.useQuery({ grupo: selectedGrupo || undefined });
+  const { data, isLoading } = trpc.equipamentos.list.useQuery({
+    page, pageSize,
+    searchNome: searchNome || undefined,
+    searchCodigo: searchCodigo || undefined,
+    grupo: selectedGrupo || undefined,
+    subgrupo: selectedSubgrupo || undefined,
+  });
+
+  const scrollToTop = () => {
+    mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const applySearch = useCallback(() => {
+    setSearchNome(searchNomeInput.trim());
+    setSearchCodigo(searchCodigoInput.trim());
+    setPage(1);
+    scrollToTop();
+  }, [searchNomeInput, searchCodigoInput]);
+
   useEffect(() => {
     if (!isDepartamentoLoading && (isDepartamentoError || !departamento)) {
       navigate("/login-departamento");
@@ -157,26 +194,6 @@ export default function CatalogPage() {
   if (!departamento) {
     return null;
   }
-  const [page, setPage] = useState(1);
-  const [searchNome, setSearchNome] = useState("");
-  const [searchCodigo, setSearchCodigo] = useState("");
-  const [searchNomeInput, setSearchNomeInput] = useState("");
-  const [searchCodigoInput, setSearchCodigoInput] = useState("");
-  const [selectedGrupo, setSelectedGrupo] = useState("");
-  const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [novoModalOpen, setNovoModalOpen] = useState(false);
-
-  const [pageSize, setPageSize] = useState(24);
-  const [goToPage, setGoToPage] = useState("");
-  const mainRef = useRef<HTMLDivElement>(null);
-
-  const { canUndo, canRedo, undo, redo } = useUndoRedo();
-  const utils = trpc.useUtils();
-
-  const scrollToTop = () => {
-    mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   const goToPageNum = (p: number, total: number) => {
     const clamped = Math.max(1, Math.min(p, total));
@@ -184,23 +201,6 @@ export default function CatalogPage() {
     setGoToPage("");
     scrollToTop();
   };
-
-  const { data: grupos } = trpc.equipamentos.grupos.useQuery();
-  const { data: subgrupos } = trpc.equipamentos.subgrupos.useQuery({ grupo: selectedGrupo || undefined });
-  const { data, isLoading } = trpc.equipamentos.list.useQuery({
-    page, pageSize,
-    searchNome: searchNome || undefined,
-    searchCodigo: searchCodigo || undefined,
-    grupo: selectedGrupo || undefined,
-    subgrupo: selectedSubgrupo || undefined,
-  });
-
-  const applySearch = useCallback(() => {
-    setSearchNome(searchNomeInput.trim());
-    setSearchCodigo(searchCodigoInput.trim());
-    setPage(1);
-    scrollToTop();
-  }, [searchNomeInput, searchCodigoInput]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter") applySearch(); };
 
