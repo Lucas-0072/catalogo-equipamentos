@@ -51,6 +51,53 @@ export const appRouter = router({
       ctx.res.clearCookie(DEPARTAMENTO_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    requestPasswordReset: publicProcedure
+      .input(z.object({
+        login: z.string().min(1),
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await db.requestPasswordReset(input.login, input.email);
+          return { success: true, message: "Email de recuperacao enviado", token: result.token };
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Erro ao solicitar recuperacao de senha",
+          });
+        }
+      }),
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string().min(1),
+        novaSenha: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          await db.resetPassword(input.token, input.novaSenha);
+          return { success: true, message: "Senha redefinida com sucesso" };
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Erro ao redefinir senha",
+          });
+        }
+      }),
+    validateResetToken: publicProcedure
+      .input(z.object({
+        token: z.string().min(1),
+      }))
+      .query(async ({ input }) => {
+        try {
+          const departamento = await db.getDepartamentoByResetToken(input.token);
+          if (!departamento) {
+            return { valid: false, message: "Token invalido ou expirado" };
+          }
+          return { valid: true, departamento: { id: departamento.id, nome: departamento.nome } };
+        } catch (error) {
+          return { valid: false, message: "Erro ao validar token" };
+        }
+      }),
   }),
 
   // ── Departamentos ──────────────────────────────────────────────────────────

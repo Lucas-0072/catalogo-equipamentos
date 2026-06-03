@@ -236,3 +236,90 @@ export async function permanentlyDeleteDepartamento(id: number): Promise<void> {
 
   await db.delete(departamentos).where(eq(departamentos.id, id));
 }
+
+
+// Funções de recuperação de senha
+export async function generateResetToken(): Promise<string> {
+  return require("crypto").randomBytes(32).toString("hex");
+}
+
+export async function requestPasswordReset(login: string, email: string): Promise<{ token: string; expiresAt: Date }> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.select().from(departamentos).where(eq(departamentos.login, login)).limit(1);
+  const departamento = result[0];
+
+  if (!departamento) {
+    throw new Error("Departamento não encontrado");
+  }
+
+  // Verificar se o email corresponde
+  if (departamento.email !== email) {
+    throw new Error("Email não corresponde ao cadastrado");
+  }
+
+  // Gerar token com expiração de 1 hora
+  const token = await generateResetToken();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+  await db.update(departamentos).set({
+    resetToken: token,
+    resetTokenExpiry: expiresAt,
+  }).where(eq(departamentos.id, departamento.id));
+
+  return { token, expiresAt };
+}
+
+export async function resetPassword(token: string, novaSenha: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.select().from(departamentos).where(eq(departamentos.resetToken, token)).limit(1);
+  const departamento = result[0];
+
+  if (!departamento) {
+    throw new Error("Token inválido");
+  }
+
+  // Verificar se o token expirou
+  if (!departamento.resetTokenExpiry || new Date() > departamento.resetTokenExpiry) {
+    throw new Error("Token expirado");
+  }
+
+  // Hash da nova senha
+  const bcrypt = require("bcryptjs");
+  const senhaHash = await bcrypt.hash(novaSenha, 10);
+
+  // Atualizar senha e limpar token
+  await db.update(departamentos).set({
+    senhaHash,
+    resetToken: null,
+    resetTokenExpiry: null,
+  }).where(eq(departamentos.id, departamento.id));
+}
+
+export async function getDepartamentoByResetToken(token: string): Promise<Departamento | undefined> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.select().from(departamentos).where(eq(departamentos.resetToken, token)).limit(1);
+  const departamento = result[0];
+
+  if (!departamento) {
+    return undefined;
+  }
+
+  // Verificar se o token expirou
+  if (!departamento.resetTokenExpiry || new Date() > departamento.resetTokenExpiry) {
+    return undefined;
+  }
+
+  return departamento;
+}

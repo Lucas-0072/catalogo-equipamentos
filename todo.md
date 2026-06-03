@@ -97,3 +97,12 @@
 - [x] Implementar filtros de data (deletedAt) na lixeira
 - [x] Adicionar testes para pesquisa e filtros de data na lixeira
 - [x] Fazer TrashPage carregar dados da lixeira ao montar (remover enabled: false e adicionar refetch no useEffect)
+
+## Login com Recuperação de Senha
+
+- [x] Adicionar coluna de email e token de recuperação de senha ao schema de departamentos
+- [x] Implementar endpoints de recuperação de senha (solicitação e reset)
+- [ ] Criar tela de login melhorada com link de recuperação de senha
+- [ ] Criar página de reset de senha
+- [ ] Proteger rota do catálogo para exigir login
+- [ ] Adicionar testes automatizados para recuperação de senha (request/validate/reset)
