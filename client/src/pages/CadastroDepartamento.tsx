@@ -11,7 +11,6 @@ export default function CadastroDepartamento() {
   const [nome, setNome] = useState("");
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
@@ -45,16 +44,6 @@ export default function CadastroDepartamento() {
 
     if (senha.length < 6) {
       setErro("Senha deve ter pelo menos 6 caracteres");
-      return;
-    }
-
-    if (!email.trim()) {
-      setErro("Digite um email");
-      return;
-    }
-
-    if (!email.includes("@")) {
-      setErro("Email inválido");
       return;
     }
 
@@ -222,31 +211,6 @@ export default function CadastroDepartamento() {
             />
           </div>
 
-          {/* Email */}
-          <div>
-            <label
-              className="text-xs font-semibold block mb-2"
-              style={{ color: "oklch(0.55 0 0)", textTransform: "uppercase" }}
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              disabled={loading}
-              className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
-              style={{
-                background: "oklch(0.18 0 0)",
-                border: "1px solid oklch(0.28 0 0)",
-                color: "oklch(0.90 0 0)",
-              }}
-              onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
-              onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
-            />
-          </div>
-
           {/* Senha */}
           <div>
             <label
@@ -275,7 +239,7 @@ export default function CadastroDepartamento() {
           {/* Botão */}
           <button
             type="submit"
-            disabled={loading || !nome.trim() || !login.trim() || !senha.trim() || !email.trim()}
+            disabled={loading || !nome.trim() || !login.trim() || !senha.trim()}
             className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: "oklch(0.85 0.18 95)",
