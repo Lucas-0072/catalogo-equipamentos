@@ -78,3 +78,4 @@
 - [x] Atualizar middleware de autoriza\u00e7\u00e3o para usar permiss\u00f5es do banco
 - [x] Atualizar gerenciador de departamentos no Admin com controles de permiss\u00f5es
 - [x] Adicionar testes de permiss\u00f5es configur\u00e1veis
+- [x] Adicionar modo de edição para nomes de departamentos no gerenciador

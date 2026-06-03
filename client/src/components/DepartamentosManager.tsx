@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Plus, Trash2, Save, Loader2, X, AlertCircle, Key, Lock } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, X, AlertCircle, Key, Lock, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface Departamento {
@@ -34,6 +34,9 @@ export default function DepartamentosManager() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [editingNomeId, setEditingNomeId] = useState<number | null>(null);
+  const [editingNomeValue, setEditingNomeValue] = useState("");
+  const [savingNome, setSavingNome] = useState(false);
 
   const handleCreate = async () => {
     if (!form.nome.trim() || !form.login.trim() || !form.senha.trim()) {
@@ -97,6 +100,33 @@ export default function DepartamentosManager() {
       toast.success("Departamento deletado com sucesso!");
     } catch (err: any) {
       toast.error(err?.message || "Erro ao deletar departamento");
+    }
+  };
+
+  const handleStartEditNome = (dept: Departamento) => {
+    setEditingNomeId(dept.id);
+    setEditingNomeValue(dept.nome);
+  };
+
+  const handleSaveNome = async (id: number) => {
+    if (!editingNomeValue.trim()) {
+      toast.error("Nome não pode ser vazio");
+      return;
+    }
+
+    setSavingNome(true);
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        nome: editingNomeValue.trim(),
+      });
+      toast.success("Nome do departamento atualizado!");
+      setEditingNomeId(null);
+      setEditingNomeValue("");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao atualizar nome");
+    } finally {
+      setSavingNome(false);
     }
   };
 
@@ -268,10 +298,56 @@ export default function DepartamentosManager() {
                 }}
               >
                 <div className="flex-1">
-                  <p className="font-semibold" style={{ color: "oklch(0.85 0.18 95)" }}>
-                    {dept.nome}
-                  </p>
-                  <p className="text-xs mt-1 flex items-center gap-2" style={{ color: "oklch(0.50 0 0)" }}>
+                  {editingNomeId === dept.id ? (
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={editingNomeValue}
+                        onChange={e => setEditingNomeValue(e.target.value)}
+                        style={{
+                          background: "oklch(0.18 0 0)",
+                          border: "1px solid oklch(0.85 0.18 95)",
+                          color: "oklch(0.90 0 0)",
+                          borderRadius: "6px",
+                          padding: "6px 10px",
+                          fontSize: "13px",
+                          flex: 1,
+                          outline: "none",
+                        }}
+                        autoFocus
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSaveNome(dept.id);
+                        }}
+                        disabled={savingNome}
+                        className="p-1 rounded transition-all"
+                        style={{ color: "oklch(0.85 0.18 95)" }}
+                      >
+                        {savingNome ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="font-semibold flex-1" style={{ color: "oklch(0.85 0.18 95)" }}>
+                        {dept.nome}
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartEditNome(dept);
+                        }}
+                        className="p-1 rounded transition-all"
+                        style={{ color: "oklch(0.55 0 0)" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "oklch(0.85 0.18 95)")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "oklch(0.55 0 0)")}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs flex items-center gap-2" style={{ color: "oklch(0.50 0 0)" }}>
                     <Key size={12} />
                     {dept.login}
                   </p>
