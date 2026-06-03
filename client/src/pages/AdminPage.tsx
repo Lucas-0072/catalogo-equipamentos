@@ -225,9 +225,15 @@ export default function AdminPage() {
       <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
         {/* ── Cabeçalho ── */}
-        <div>
-          <h2 className="text-2xl font-bold" style={{ color: "oklch(0.85 0.18 95)" }}>Painel Admin</h2>
-          <p className="text-sm mt-1" style={{ color: "oklch(0.55 0 0)" }}>Gerencie fornecedores e sincronize a planilha de equipamentos</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold" style={{ color: "oklch(0.85 0.18 95)" }}>Painel Admin</h2>
+            <p className="text-sm mt-1" style={{ color: "oklch(0.55 0 0)" }}>Gerencie fornecedores e sincronize a planilha de equipamentos</p>
+          </div>
+          <button onClick={() => document.getElementById('lixeira')?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors" style={{ background: "oklch(0.20 0 0)", border: "1px solid oklch(0.28 0 0)", color: "oklch(0.65 0 0)" }} onMouseEnter={e => { e.currentTarget.style.borderColor = "oklch(0.85 0.18 95 / 0.40)"; e.currentTarget.style.color = "oklch(0.85 0.18 95)"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "oklch(0.28 0 0)"; e.currentTarget.style.color = "oklch(0.65 0 0)"; }}>
+            <Trash2 size={18} />
+            <span className="text-sm font-medium">Lixeira</span>
+          </button>
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
@@ -732,7 +738,7 @@ export default function AdminPage() {
         </div>
 
         {/* Lixeira */}
-        <div className="border-t" style={{ borderColor: "oklch(0.22 0 0)" }}>
+        <div id="lixeira" className="border-t" style={{ borderColor: "oklch(0.22 0 0)" }}>
           <div className="pt-8">
             <TrashPage />
           </div>

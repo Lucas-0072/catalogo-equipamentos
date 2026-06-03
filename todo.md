@@ -89,3 +89,4 @@
 - [x] Implementar endpoints de lixeira (listar, restaurar, deletar permanentemente)
 - [x] Adicionar testes para funcionalidade de lixeira (18 testes de soft delete)
 - [x] Criar página de lixeira no Admin (com abas de navegação)
+- [x] Adicionar ícone de lixeira visível na página Admin para acesso rápido
