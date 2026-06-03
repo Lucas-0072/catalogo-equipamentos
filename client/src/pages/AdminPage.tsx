@@ -738,8 +738,17 @@ export default function AdminPage() {
         </div>
 
         {/* Lixeira */}
-        <div id="lixeira" className="border-t" style={{ borderColor: "oklch(0.22 0 0)" }}>
-          <div className="pt-8">
+        <div id="lixeira" className="border-t mt-8" style={{ borderColor: "oklch(0.22 0 0)" }}>
+          <div className="pt-8 pb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "oklch(0.45 0.15 25 / 0.20)" }}>
+                <Trash2 size={24} style={{ color: "oklch(0.65 0.15 25)" }} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold" style={{ color: "oklch(0.90 0 0)" }}>Lixeira</h2>
+                <p className="text-sm" style={{ color: "oklch(0.55 0 0)" }}>Visualize e restaure itens deletados</p>
+              </div>
+            </div>
             <TrashPage />
           </div>
         </div>
