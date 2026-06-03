@@ -145,6 +145,20 @@ export const appRouter = router({
       ctx.res.clearCookie(DEPARTAMENTO_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    resetPasswordDirect: publicProcedure
+      .input(z.object({
+        login: z.string().min(1),
+        novaSenha: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const departamento = await db.getDepartamentoByLogin(input.login);
+        if (!departamento) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Departamento não encontrado" });
+        }
+        const senhaHash = await require("bcryptjs").hash(input.novaSenha, 10);
+        await db.updateDepartamento(departamento.id, { senhaHash });
+        return { success: true };
+      }),
   }),
 
   // ── Fornecedores ──────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { LogIn, AlertCircle, Loader2, Mail, UserPlus } from "lucide-react";
+import { LogIn, AlertCircle, Loader2, UserPlus, Key } from "lucide-react";
 import { toast } from "sonner";
 
 const PROCYTEK_LOGO = "/manus-storage/procytek-logo_bf3a0e53.png";
@@ -12,14 +12,16 @@ export default function LoginDepartamento() {
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotLogin, setForgotLogin] = useState("");
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotError, setForgotError] = useState("");
-  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetLogin, setResetLogin] = useState("");
+  const [resetSenha, setResetSenha] = useState("");
+  const [resetConfirmSenha, setResetConfirmSenha] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const loginMutation = trpc.auth.loginDepartamento.useMutation();
-  const requestPasswordResetMutation = trpc.auth.requestPasswordReset.useMutation();
+  const resetPasswordMutation = trpc.departamentos.resetPasswordDirect.useMutation();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +49,56 @@ export default function LoginDepartamento() {
       toast.error(mensagem);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError("");
+
+    if (!resetLogin.trim()) {
+      setResetError("Digite o login do departamento");
+      return;
+    }
+
+    if (!resetSenha.trim()) {
+      setResetError("Digite a nova senha");
+      return;
+    }
+
+    if (resetSenha.length < 6) {
+      setResetError("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
+    if (resetSenha !== resetConfirmSenha) {
+      setResetError("As senhas não conferem");
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      await resetPasswordMutation.mutateAsync({
+        login: resetLogin,
+        novaSenha: resetSenha,
+      });
+      setResetSuccess(true);
+      toast.success("Senha redefinida com sucesso!");
+      
+      setTimeout(() => {
+        setShowResetPassword(false);
+        setResetSuccess(false);
+        setResetLogin("");
+        setResetSenha("");
+        setResetConfirmSenha("");
+      }, 2000);
+    } catch (err: any) {
+      const mensagem = err?.message || "Erro ao redefinir senha";
+      setResetError(mensagem);
+      toast.error(mensagem);
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -182,11 +234,11 @@ export default function LoginDepartamento() {
             Esqueceu sua senha?{" "}
             <button
               type="button"
-              onClick={() => setShowForgotPassword(true)}
+              onClick={() => setShowResetPassword(true)}
               className="font-semibold hover:underline"
               style={{ color: "oklch(0.85 0.18 95)" }}
             >
-              Recuperar
+              Redefinir
             </button>
           </p>
 
@@ -210,8 +262,8 @@ export default function LoginDepartamento() {
         </p>
       </div>
 
-      {/* Modal de recuperação de senha */}
-      {showForgotPassword && (
+      {/* Modal de redefinição de senha */}
+      {showResetPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div
             className="w-full max-w-md rounded-2xl border p-6"
@@ -224,21 +276,22 @@ export default function LoginDepartamento() {
               className="text-lg font-bold mb-4 flex items-center gap-2"
               style={{ color: "oklch(0.85 0.18 95)" }}
             >
-              <Mail size={20} />
-              Recuperar Senha
+              <Key size={20} />
+              Redefinir Senha
             </h2>
 
-            {forgotSuccess ? (
+            {resetSuccess ? (
               <div className="space-y-4">
                 <p className="text-sm" style={{ color: "oklch(0.55 0 0)" }}>
-                  Um link de recuperação foi enviado para seu email. Verifique sua caixa de entrada.
+                  Sua senha foi redefinida com sucesso! Você será redirecionado para o login.
                 </p>
                 <button
                   onClick={() => {
-                    setShowForgotPassword(false);
-                    setForgotSuccess(false);
-                    setForgotLogin("");
-                    setForgotEmail("");
+                    setShowResetPassword(false);
+                    setResetSuccess(false);
+                    setResetLogin("");
+                    setResetSenha("");
+                    setResetConfirmSenha("");
                   }}
                   className="w-full py-2 rounded-lg text-sm font-semibold transition-all"
                   style={{
@@ -251,30 +304,10 @@ export default function LoginDepartamento() {
               </div>
             ) : (
               <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setForgotError("");
-
-                  if (!forgotLogin || !forgotEmail) {
-                    setForgotError("Preencha o login e email");
-                    return;
-                  }
-
-                  try {
-                    await requestPasswordResetMutation.mutateAsync({
-                      login: forgotLogin,
-                      email: forgotEmail,
-                    });
-                    setForgotSuccess(true);
-                  } catch (err) {
-                    setForgotError(
-                      err instanceof Error ? err.message : "Erro ao solicitar recuperação"
-                    );
-                  }
-                }}
+                onSubmit={handleResetPassword}
                 className="space-y-4"
               >
-                {forgotError && (
+                {resetError && (
                   <div
                     className="flex items-center gap-3 p-3 rounded-lg"
                     style={{
@@ -284,7 +317,7 @@ export default function LoginDepartamento() {
                   >
                     <AlertCircle size={16} style={{ color: "oklch(0.70 0.18 15)" }} />
                     <p className="text-sm" style={{ color: "oklch(0.70 0.18 15)" }}>
-                      {forgotError}
+                      {resetError}
                     </p>
                   </div>
                 )}
@@ -299,9 +332,9 @@ export default function LoginDepartamento() {
                   <input
                     type="text"
                     placeholder="Digite seu login"
-                    value={forgotLogin}
-                    onChange={(e) => setForgotLogin(e.target.value)}
-                    disabled={requestPasswordResetMutation.isPending}
+                    value={resetLogin}
+                    onChange={(e) => setResetLogin(e.target.value)}
+                    disabled={resetLoading}
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
                     style={{
                       background: "oklch(0.18 0 0)",
@@ -316,14 +349,36 @@ export default function LoginDepartamento() {
                     className="text-xs font-semibold block mb-2"
                     style={{ color: "oklch(0.55 0 0)", textTransform: "uppercase" }}
                   >
-                    Email
+                    Nova Senha
                   </label>
                   <input
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    disabled={requestPasswordResetMutation.isPending}
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={resetSenha}
+                    onChange={(e) => setResetSenha(e.target.value)}
+                    disabled={resetLoading}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
+                    style={{
+                      background: "oklch(0.18 0 0)",
+                      border: "1px solid oklch(0.28 0 0)",
+                      color: "oklch(0.90 0 0)",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-xs font-semibold block mb-2"
+                    style={{ color: "oklch(0.55 0 0)", textTransform: "uppercase" }}
+                  >
+                    Confirmar Senha
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Confirme a nova senha"
+                    value={resetConfirmSenha}
+                    onChange={(e) => setResetConfirmSenha(e.target.value)}
+                    disabled={resetLoading}
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
                     style={{
                       background: "oklch(0.18 0 0)",
@@ -336,8 +391,8 @@ export default function LoginDepartamento() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowForgotPassword(false)}
-                    disabled={requestPasswordResetMutation.isPending}
+                    onClick={() => setShowResetPassword(false)}
+                    disabled={resetLoading}
                     className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
                     style={{
                       background: "oklch(0.22 0 0)",
@@ -349,20 +404,20 @@ export default function LoginDepartamento() {
                   </button>
                   <button
                     type="submit"
-                    disabled={requestPasswordResetMutation.isPending}
+                    disabled={resetLoading}
                     className="flex-1 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                     style={{
                       background: "oklch(0.85 0.18 95)",
                       color: "oklch(0.08 0 0)",
                     }}
                   >
-                    {requestPasswordResetMutation.isPending ? (
+                    {resetLoading ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        Enviando...
+                        Redefinindo...
                       </>
                     ) : (
-                      "Enviar"
+                      "Redefinir"
                     )}
                   </button>
                 </div>
