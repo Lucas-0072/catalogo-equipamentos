@@ -217,7 +217,7 @@ export default function DepartamentosManager() {
                 type="text"
                 value={form.nome}
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                placeholder="Ex: Gestão"
+                placeholder="Ex: Manutenção"
                 style={inputStyle}
                 onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
                 onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
@@ -229,7 +229,7 @@ export default function DepartamentosManager() {
                 type="text"
                 value={form.login}
                 onChange={e => setForm(f => ({ ...f, login: e.target.value }))}
-                placeholder="Ex: gestao"
+                placeholder="Ex: manutencao"
                 style={inputStyle}
                 onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
                 onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}

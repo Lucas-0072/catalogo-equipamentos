@@ -173,7 +173,7 @@ export default function CadastroDepartamento() {
               type="text"
               value={nome}
               onChange={e => setNome(e.target.value)}
-              placeholder="Ex: Gestão, Almoxarifado"
+              placeholder="Ex: Manutenção, Compras"
               disabled={loading}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
               style={{

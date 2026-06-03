@@ -35,7 +35,7 @@ export default function Header({ canUndo = false, canRedo = false, onUndo, onRed
                 Catálogo de Equipamentos
               </h1>
               <p className="text-xs" style={{ color: "oklch(0.55 0 0)" }}>
-                Procytek — Gestão de Produtos
+                Procytek — Catálogo de Equipamentos
               </p>
             </div>
             <div className="block sm:hidden">
