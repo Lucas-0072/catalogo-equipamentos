@@ -55,10 +55,10 @@ export const appRouter = router({
 
   // ── Departamentos ──────────────────────────────────────────────────────────
   departamentos: router({
-    list: publicProcedure.query(async () => {
+    list: departamentoWriteProcedure.query(async () => {
       return await db.listDepartamentos();
     }),
-    create: publicProcedure
+    create: departamentoWriteProcedure
       .input(z.object({
         nome: z.string().min(1),
         login: z.string().min(1),
@@ -67,7 +67,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.createDepartamento(input.nome, input.login, input.senha);
       }),
-    update: publicProcedure
+    update: departamentoWriteProcedure
       .input(z.object({
         id: z.number(),
         nome: z.string().optional(),
@@ -84,7 +84,7 @@ export const appRouter = router({
         await db.updateDepartamento(id, updates);
         return { success: true };
       }),
-    delete: publicProcedure
+    delete: departamentoWriteProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteDepartamento(input.id);
@@ -94,7 +94,7 @@ export const appRouter = router({
 
   // ── Fornecedores ──────────────────────────────────────────────────────────
   fornecedores: router({
-    list: publicProcedure.query(async () => {
+    list: departamentoWriteProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
       return db.select().from(fornecedores).orderBy(fornecedores.nome);
