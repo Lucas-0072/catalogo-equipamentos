@@ -90,3 +90,10 @@
 - [x] Adicionar testes para funcionalidade de lixeira (18 testes de soft delete)
 - [x] Criar página de lixeira no Admin (com abas de navegação)
 - [x] Adicionar ícone de lixeira visível na página Admin para acesso rápido
+
+## Pesquisa e Filtros na Lixeira
+
+- [x] Implementar barra de pesquisa na lixeira para filtrar por nome/código
+- [x] Implementar filtros de data (deletedAt) na lixeira
+- [x] Adicionar testes para pesquisa e filtros de data na lixeira
+- [x] Fazer TrashPage carregar dados da lixeira ao montar (remover enabled: false e adicionar refetch no useEffect)

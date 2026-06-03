@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "../lib/trpc";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { RotateCcw, Trash2, AlertCircle } from "lucide-react";
+import { RotateCcw, Trash2, AlertCircle, Search, Calendar } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 
 export function TrashPage() {
@@ -14,9 +14,23 @@ export function TrashPage() {
   const [showRestoreDeptDialog, setShowRestoreDeptDialog] = useState(false);
   const [showDeleteDeptDialog, setShowDeleteDeptDialog] = useState(false);
 
+  // Pesquisa e filtros
+  const [searchEquip, setSearchEquip] = useState("");
+  const [searchDept, setSearchDept] = useState("");
+  const [dateFromEquip, setDateFromEquip] = useState("");
+  const [dateToEquip, setDateToEquip] = useState("");
+  const [dateFromDept, setDateFromDept] = useState("");
+  const [dateToDept, setDateToDept] = useState("");
+
   // Queries
   const { data: deletedEquipamentos = [], isLoading: loadingEquip, refetch: refetchEquip } = trpc.trash.listEquipamentos.useQuery(undefined, { enabled: false });
   const { data: deletedDepartamentos = [], isLoading: loadingDept, refetch: refetchDept } = trpc.trash.listDepartamentos.useQuery(undefined, { enabled: false });
+
+  // Carregar dados da lixeira ao montar
+  useEffect(() => {
+    refetchEquip();
+    refetchDept();
+  }, [refetchEquip, refetchDept]);
 
   // Mutations
   const restoreEquipMutation = trpc.trash.restoreEquipamento.useMutation({
@@ -54,6 +68,36 @@ export function TrashPage() {
   const selectedEquip = deletedEquipamentos.find(e => e.id === selectedEquipId);
   const selectedDept = deletedDepartamentos.find(d => d.id === selectedDeptId);
 
+  // Funções de filtro
+  const filteredEquipamentos = deletedEquipamentos.filter(equip => {
+    const matchSearch = !searchEquip || 
+      equip.codigo.toLowerCase().includes(searchEquip.toLowerCase()) ||
+      equip.descricao.toLowerCase().includes(searchEquip.toLowerCase()) ||
+      (equip.referencia?.toLowerCase().includes(searchEquip.toLowerCase()) ?? false);
+    
+    if (!equip.deletedAt) return matchSearch;
+    const deletedDate = new Date(equip.deletedAt).getTime();
+    const fromDate = dateFromEquip ? new Date(dateFromEquip).getTime() : 0;
+    const toDate = dateToEquip ? new Date(dateToEquip).getTime() + 86400000 : Infinity;
+    const matchDate = deletedDate >= fromDate && deletedDate <= toDate;
+    
+    return matchSearch && matchDate;
+  });
+
+  const filteredDepartamentos = deletedDepartamentos.filter(dept => {
+    const matchSearch = !searchDept || 
+      (dept.nome?.toLowerCase().includes(searchDept.toLowerCase()) ?? false) ||
+      (dept.login?.toLowerCase().includes(searchDept.toLowerCase()) ?? false);
+    
+    if (!dept.deletedAt) return matchSearch;
+    const deletedDate = new Date(dept.deletedAt).getTime();
+    const fromDate = dateFromDept ? new Date(dateFromDept).getTime() : 0;
+    const toDate = dateToDept ? new Date(dateToDept).getTime() + 86400000 : Infinity;
+    const matchDate = deletedDate >= fromDate && deletedDate <= toDate;
+    
+    return matchSearch && matchDate;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -73,16 +117,66 @@ export function TrashPage() {
         </TabsList>
 
         <TabsContent value="equipamentos" className="space-y-4">
+          {/* Barra de pesquisa e filtros */}
+          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.12 0 0)", border: "1px solid oklch(0.25 0 0)" }}>
+            <div className="flex items-center gap-2">
+              <Search size={18} style={{ color: "oklch(0.65 0.15 25)" }} />
+              <input
+                type="text"
+                placeholder="Buscar por código, descrição..."
+                value={searchEquip}
+                onChange={e => setSearchEquip(e.target.value)}
+                className="flex-1 px-3 py-2 rounded text-sm"
+                style={{ background: "oklch(0.08 0 0)", border: "1px solid oklch(0.25 0 0)", color: "oklch(0.85 0.18 95)" }}
+              />
+            </div>
+            <div className="flex gap-2 items-end flex-wrap">
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs" style={{ color: "oklch(0.65 0 0)" }}>De:</label>
+                <input
+                  type="date"
+                  value={dateFromEquip}
+                  onChange={e => setDateFromEquip(e.target.value)}
+                  className="w-full px-2 py-1 rounded text-sm"
+                  style={{ background: "oklch(0.08 0 0)", border: "1px solid oklch(0.25 0 0)", color: "oklch(0.85 0.18 95)" }}
+                />
+              </div>
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs" style={{ color: "oklch(0.65 0 0)" }}>Até:</label>
+                <input
+                  type="date"
+                  value={dateToEquip}
+                  onChange={e => setDateToEquip(e.target.value)}
+                  className="w-full px-2 py-1 rounded text-sm"
+                  style={{ background: "oklch(0.08 0 0)", border: "1px solid oklch(0.25 0 0)", color: "oklch(0.85 0.18 95)" }}
+                />
+              </div>
+              {(searchEquip || dateFromEquip || dateToEquip) && (
+                <Button
+                  onClick={() => {
+                    setSearchEquip("");
+                    setDateFromEquip("");
+                    setDateToEquip("");
+                  }}
+                  className="px-3 py-1 text-sm"
+                  style={{ background: "oklch(0.45 0.15 25 / 0.20)", color: "oklch(0.65 0.15 25)" }}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+
           {loadingEquip ? (
             <div style={{ color: "oklch(0.55 0 0)" }}>Carregando...</div>
-          ) : deletedEquipamentos.length === 0 ? (
+          ) : filteredEquipamentos.length === 0 ? (
             <Card className="p-8 text-center" style={{ background: "oklch(0.12 0 0)", border: "1px solid oklch(0.25 0 0)" }}>
               <AlertCircle size={32} className="mx-auto mb-3" style={{ color: "oklch(0.55 0 0)" }} />
               <p style={{ color: "oklch(0.55 0 0)" }}>Nenhum equipamento na lixeira</p>
             </Card>
           ) : (
             <div className="space-y-3">
-              {deletedEquipamentos.map(equip => (
+              {filteredEquipamentos.map(equip => (
                 <Card
                   key={equip.id}
                   className="p-4 cursor-pointer transition-colors"
@@ -135,16 +229,66 @@ export function TrashPage() {
         </TabsContent>
 
         <TabsContent value="departamentos" className="space-y-4">
+          {/* Barra de pesquisa e filtros */}
+          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.12 0 0)", border: "1px solid oklch(0.25 0 0)" }}>
+            <div className="flex items-center gap-2">
+              <Search size={18} style={{ color: "oklch(0.65 0.15 25)" }} />
+              <input
+                type="text"
+                placeholder="Buscar por nome, login..."
+                value={searchDept}
+                onChange={e => setSearchDept(e.target.value)}
+                className="flex-1 px-3 py-2 rounded text-sm"
+                style={{ background: "oklch(0.08 0 0)", border: "1px solid oklch(0.25 0 0)", color: "oklch(0.85 0.18 95)" }}
+              />
+            </div>
+            <div className="flex gap-2 items-end flex-wrap">
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs" style={{ color: "oklch(0.65 0 0)" }}>De:</label>
+                <input
+                  type="date"
+                  value={dateFromDept}
+                  onChange={e => setDateFromDept(e.target.value)}
+                  className="w-full px-2 py-1 rounded text-sm"
+                  style={{ background: "oklch(0.08 0 0)", border: "1px solid oklch(0.25 0 0)", color: "oklch(0.85 0.18 95)" }}
+                />
+              </div>
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs" style={{ color: "oklch(0.65 0 0)" }}>Até:</label>
+                <input
+                  type="date"
+                  value={dateToDept}
+                  onChange={e => setDateToDept(e.target.value)}
+                  className="w-full px-2 py-1 rounded text-sm"
+                  style={{ background: "oklch(0.08 0 0)", border: "1px solid oklch(0.25 0 0)", color: "oklch(0.85 0.18 95)" }}
+                />
+              </div>
+              {(searchDept || dateFromDept || dateToDept) && (
+                <Button
+                  onClick={() => {
+                    setSearchDept("");
+                    setDateFromDept("");
+                    setDateToDept("");
+                  }}
+                  className="px-3 py-1 text-sm"
+                  style={{ background: "oklch(0.45 0.15 25 / 0.20)", color: "oklch(0.65 0.15 25)" }}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+
           {loadingDept ? (
             <div style={{ color: "oklch(0.55 0 0)" }}>Carregando...</div>
-          ) : deletedDepartamentos.length === 0 ? (
+          ) : filteredDepartamentos.length === 0 ? (
             <Card className="p-8 text-center" style={{ background: "oklch(0.12 0 0)", border: "1px solid oklch(0.25 0 0)" }}>
               <AlertCircle size={32} className="mx-auto mb-3" style={{ color: "oklch(0.55 0 0)" }} />
               <p style={{ color: "oklch(0.55 0 0)" }}>Nenhum departamento na lixeira</p>
             </Card>
           ) : (
             <div className="space-y-3">
-              {deletedDepartamentos.map(dept => (
+              {filteredDepartamentos.map(dept => (
                 <Card
                   key={dept.id}
                   className="p-4 cursor-pointer transition-colors"
