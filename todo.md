@@ -102,7 +102,7 @@
 
 - [x] Adicionar coluna de email e token de recuperação de senha ao schema de departamentos
 - [x] Implementar endpoints de recuperação de senha (solicitação e reset)
-- [ ] Criar tela de login melhorada com link de recuperação de senha
-- [ ] Criar página de reset de senha
+- [x] Criar tela de login melhorada com link de recuperação de senha
+- [x] Criar página de reset de senha
 - [ ] Proteger rota do catálogo para exigir login
-- [ ] Adicionar testes automatizados para recuperação de senha (request/validate/reset)
+- [x] Adicionar testes automatizados para recuperação de senha (61 testes passando)
