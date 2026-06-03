@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { LogIn, AlertCircle, Loader2, Mail } from "lucide-react";
+import { LogIn, AlertCircle, Loader2, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 const PROCYTEK_LOGO = "/manus-storage/procytek-logo_bf3a0e53.png";
 
 export default function LoginDepartamento() {
   const [, setLocation] = useLocation();
-  const [departamentoId, setDepartamentoId] = useState("");
+  const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotDepartamento, setForgotDepartamento] = useState("");
+  const [forgotLogin, setForgotLogin] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
@@ -25,15 +25,20 @@ export default function LoginDepartamento() {
     e.preventDefault();
     setErro("");
     
-    if (!departamentoId) {
-      setErro("Selecione um departamento");
+    if (!login.trim()) {
+      setErro("Digite o login do departamento");
+      return;
+    }
+
+    if (!senha.trim()) {
+      setErro("Digite sua senha");
       return;
     }
 
     setLoading(true);
 
     try {
-      await loginMutation.mutateAsync({ login: departamentoId, senha });
+      await loginMutation.mutateAsync({ login, senha });
       toast.success("Login realizado com sucesso!");
       setTimeout(() => setLocation("/"), 500);
     } catch (err: any) {
@@ -63,7 +68,7 @@ export default function LoginDepartamento() {
               Catálogo de Equipamentos
             </h1>
             <p className="text-sm mt-1" style={{ color: "oklch(0.55 0 0)" }}>
-              Login por Departamento
+              Login de Departamento
             </p>
           </div>
         </div>
@@ -93,17 +98,19 @@ export default function LoginDepartamento() {
             </div>
           )}
 
-          {/* Departamento */}
+          {/* Login */}
           <div>
             <label
               className="text-xs font-semibold block mb-2"
               style={{ color: "oklch(0.55 0 0)", textTransform: "uppercase" }}
             >
-              Departamento
+              Login
             </label>
-            <select
-              value={departamentoId}
-              onChange={e => setDepartamentoId(e.target.value)}
+            <input
+              type="text"
+              value={login}
+              onChange={e => setLogin(e.target.value)}
+              placeholder="Digite seu login"
               disabled={loading}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
               style={{
@@ -113,11 +120,7 @@ export default function LoginDepartamento() {
               }}
               onFocus={e => (e.currentTarget.style.borderColor = "oklch(0.85 0.18 95)")}
               onBlur={e => (e.currentTarget.style.borderColor = "oklch(0.28 0 0)")}
-            >
-              <option value="">— Selecione um departamento —</option>
-                    <option value="gestao">Gestão</option>
-                    <option value="almoxarifado">Almoxarifado</option>
-            </select>
+            />
           </div>
 
           {/* Senha */}
@@ -148,7 +151,7 @@ export default function LoginDepartamento() {
           {/* Botão */}
           <button
             type="submit"
-            disabled={loading || !departamentoId || !senha.trim()}
+            disabled={loading || !login.trim() || !senha.trim()}
             className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: "oklch(0.85 0.18 95)",
@@ -173,21 +176,36 @@ export default function LoginDepartamento() {
           </button>
         </form>
 
-        {/* Link de recuperação */}
-        <p className="text-center text-xs mt-6" style={{ color: "oklch(0.45 0 0)" }}>
-          Esqueceu sua senha?{" "}
-          <button
-            type="button"
-            onClick={() => setShowForgotPassword(true)}
-            className="font-semibold hover:underline"
-            style={{ color: "oklch(0.85 0.18 95)" }}
-          >
-            Recuperar
-          </button>
-        </p>
+        {/* Links */}
+        <div className="space-y-2 mt-6">
+          <p className="text-center text-xs" style={{ color: "oklch(0.45 0 0)" }}>
+            Esqueceu sua senha?{" "}
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="font-semibold hover:underline"
+              style={{ color: "oklch(0.85 0.18 95)" }}
+            >
+              Recuperar
+            </button>
+          </p>
+
+          <p className="text-center text-xs" style={{ color: "oklch(0.45 0 0)" }}>
+            Novo departamento?{" "}
+            <button
+              type="button"
+              onClick={() => setLocation("/cadastro-departamento")}
+              className="font-semibold hover:underline flex items-center justify-center gap-1"
+              style={{ color: "oklch(0.55 0.15 140)" }}
+            >
+              <UserPlus size={14} />
+              Cadastrar
+            </button>
+          </p>
+        </div>
 
         {/* Informação */}
-        <p className="text-center text-xs mt-2" style={{ color: "oklch(0.45 0 0)" }}>
+        <p className="text-center text-xs mt-4" style={{ color: "oklch(0.45 0 0)" }}>
           Acesso exclusivo para departamentos autorizados
         </p>
       </div>
@@ -219,7 +237,7 @@ export default function LoginDepartamento() {
                   onClick={() => {
                     setShowForgotPassword(false);
                     setForgotSuccess(false);
-                    setForgotDepartamento("");
+                    setForgotLogin("");
                     setForgotEmail("");
                   }}
                   className="w-full py-2 rounded-lg text-sm font-semibold transition-all"
@@ -237,14 +255,14 @@ export default function LoginDepartamento() {
                   e.preventDefault();
                   setForgotError("");
 
-                  if (!forgotDepartamento || !forgotEmail) {
-                    setForgotError("Preencha o departamento e email");
+                  if (!forgotLogin || !forgotEmail) {
+                    setForgotError("Preencha o login e email");
                     return;
                   }
 
                   try {
                     await requestPasswordResetMutation.mutateAsync({
-                      login: forgotDepartamento,
+                      login: forgotLogin,
                       email: forgotEmail,
                     });
                     setForgotSuccess(true);
@@ -276,11 +294,13 @@ export default function LoginDepartamento() {
                     className="text-xs font-semibold block mb-2"
                     style={{ color: "oklch(0.55 0 0)", textTransform: "uppercase" }}
                   >
-                    Departamento
+                    Login
                   </label>
-                  <select
-                    value={forgotDepartamento}
-                    onChange={(e) => setForgotDepartamento(e.target.value)}
+                  <input
+                    type="text"
+                    placeholder="Digite seu login"
+                    value={forgotLogin}
+                    onChange={(e) => setForgotLogin(e.target.value)}
                     disabled={requestPasswordResetMutation.isPending}
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all disabled:opacity-50"
                     style={{
@@ -288,11 +308,7 @@ export default function LoginDepartamento() {
                       border: "1px solid oklch(0.28 0 0)",
                       color: "oklch(0.90 0 0)",
                     }}
-                  >
-                    <option value="">— Selecione um departamento —</option>
-                    <option value="gestao">Gestão</option>
-                    <option value="almoxarifado">Almoxarifado</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
