@@ -128,9 +128,6 @@ function FilterPanel({
 
 export default function CatalogPage() {
   const [, navigate] = useLocation();
-  const { data: departamento, isLoading: isDepartamentoLoading, isError: isDepartamentoError } = trpc.departamentos.me.useQuery(undefined, {
-    retry: false,
-  });
 
   const [page, setPage] = useState(1);
   const [searchNome, setSearchNome] = useState("");
@@ -169,31 +166,7 @@ export default function CatalogPage() {
     scrollToTop();
   }, [searchNomeInput, searchCodigoInput]);
 
-  useEffect(() => {
-    if (!isDepartamentoLoading && (isDepartamentoError || !departamento)) {
-      navigate("/login-departamento");
-    }
-  }, [departamento, isDepartamentoLoading, isDepartamentoError, navigate]);
 
-  // Silently redirect on error - no error UI needed
-  if (isDepartamentoError) {
-    return null;
-  }
-
-  if (isDepartamentoLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(0.10 0 0)" }}>
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "oklch(0.85 0.18 95)" }} />
-          <p style={{ color: "oklch(0.55 0 0)" }}>Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!departamento) {
-    return null;
-  }
 
   const goToPageNum = (p: number, total: number) => {
     const clamped = Math.max(1, Math.min(p, total));
