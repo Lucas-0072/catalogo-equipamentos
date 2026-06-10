@@ -117,7 +117,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.createDepartamento(input.nome, input.login, input.senha);
       }),
-    update: departamentoWriteProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         nome: z.string().optional(),
@@ -169,7 +169,7 @@ export const appRouter = router({
       return db.select().from(fornecedores).orderBy(fornecedores.nome);
     }),
 
-    create: departamentoCreateProcedure
+    create: publicProcedure
       .input(z.object({
         nome: z.string().min(1),
         logo: z.string().optional(),
@@ -184,7 +184,7 @@ export const appRouter = router({
         return { id: result.insertId };
       }),
 
-    update: departamentoWriteProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         nome: z.string().min(1).optional(),
@@ -201,7 +201,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: departamentoDeleteProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -332,7 +332,7 @@ export const appRouter = router({
         };
       }),
 
-    create: departamentoCreateProcedure
+    create: publicProcedure
       .input(z.object({
         codigo: z.string().min(1),
         descricao: z.string().min(1),
@@ -358,7 +358,7 @@ export const appRouter = router({
         return { id: result.insertId };
       }),
 
-    update: departamentoWriteProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         descricao: z.string().optional(),
@@ -383,7 +383,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: departamentoDeleteProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -420,7 +420,7 @@ export const appRouter = router({
         return result.filter((r: { subgrupo: string | null; subgrupoNome: string | null; grupo: string | null }) => r.subgrupo);
       }),
 
-    uploadImagem: departamentoWriteProcedure
+    uploadImagem: publicProcedure
       .input(z.object({
         id: z.number(),
         imageBase64: z.string(),
