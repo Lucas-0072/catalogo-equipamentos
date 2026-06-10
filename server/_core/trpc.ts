@@ -65,76 +65,36 @@ export const departamentoProcedure = t.procedure.use(requireDepartamento);
 const requireEditPermission = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.departamento) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
-  }
-
-  if (ctx.departamento.podeEditar !== "sim") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para editar equipamentos." });
-  }
-
+  // Permitir acesso público (sem verificação de departamento)
   return next({
-    ctx: {
-      ...ctx,
-      departamento: ctx.departamento,
-    },
+    ctx,
   });
 });
 
 const requireCreatePermission = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.departamento) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
-  }
-
-  if (ctx.departamento.podeCriar !== "sim") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para criar equipamentos." });
-  }
-
+  // Permitir acesso público (sem verificação de departamento)
   return next({
-    ctx: {
-      ...ctx,
-      departamento: ctx.departamento,
-    },
+    ctx,
   });
 });
 
 const requireDeletePermission = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.departamento) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
-  }
-
-  if (ctx.departamento.podeDeletar !== "sim") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para deletar equipamentos." });
-  }
-
+  // Permitir acesso público (sem verificação de departamento)
   return next({
-    ctx: {
-      ...ctx,
-      departamento: ctx.departamento,
-    },
+    ctx,
   });
 });
 
 const requireSyncPermission = t.middleware(async opts => {
   const { ctx, next } = opts;
 
-  if (!ctx.departamento) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso exclusivo para departamentos autorizados" });
-  }
-
-  if (ctx.departamento.podeSincronizar !== "sim") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Seu departamento não tem permissão para sincronizar equipamentos." });
-  }
-
+  // Permitir acesso público (sem verificação de departamento)
   return next({
-    ctx: {
-      ...ctx,
-      departamento: ctx.departamento,
-    },
+    ctx,
   });
 });
 
