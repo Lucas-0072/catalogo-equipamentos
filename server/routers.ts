@@ -102,10 +102,10 @@ export const appRouter = router({
 
   // ── Departamentos ──────────────────────────────────────────────────────────
   departamentos: router({
-    me: departamentoProcedure.query(({ ctx }) => {
+    me: publicProcedure.query(({ ctx }) => {
       return ctx.departamento || null;
     }),
-    list: departamentoProcedure.query(async () => {
+    list: publicProcedure.query(async () => {
       return await db.listDepartamentos();
     }),
     create: departamentoWriteProcedure
@@ -140,7 +140,7 @@ export const appRouter = router({
         await db.deleteDepartamento(input.id);
         return { success: true };
       }),
-    logout: departamentoProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(DEPARTAMENTO_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -163,7 +163,7 @@ export const appRouter = router({
 
   // ── Fornecedores ──────────────────────────────────────────────────────────
   fornecedores: router({
-    list: departamentoWriteProcedure.query(async () => {
+    list: publicProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
       return db.select().from(fornecedores).orderBy(fornecedores.nome);
@@ -438,7 +438,7 @@ export const appRouter = router({
       }),
 
     // Sincronização com Excel com histórico detalhado
-    syncExcel: departamentoSyncProcedure
+    syncExcel: publicProcedure
       .input(z.object({
         fileName: z.string(),
         rows: z.array(z.object({
@@ -607,19 +607,19 @@ export const appRouter = router({
 
   // Lixeira
   trash: router({
-    listEquipamentos: departamentoWriteProcedure.query(async () => {
+    listEquipamentos: publicProcedure.query(async () => {
       return await db.listDeletedEquipamentos();
     }),
-    listDepartamentos: departamentoWriteProcedure.query(async () => {
+    listDepartamentos: publicProcedure.query(async () => {
       return await db.listDeletedDepartamentos();
     }),
-    restoreEquipamento: departamentoWriteProcedure
+    restoreEquipamento: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.restoreEquipamento(input.id);
         return { success: true };
       }),
-    restoreDepartamento: departamentoWriteProcedure
+    restoreDepartamento: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.restoreDepartamento(input.id);
