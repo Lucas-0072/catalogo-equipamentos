@@ -90,9 +90,9 @@ function FilterPanel({
         </p>
         <div className="space-y-1">
           <FilterBtn label="Todos os grupos" active={!selectedGrupo} onClick={() => { onGrupoChange(""); onClose?.(); }} />
-          {grupos?.map(g => (
+          {grupos?.map((g, idx) => (
             <FilterBtn
-              key={g.grupo}
+              key={`grupo-${g.grupo}-${idx}`}
               label={`${g.grupo} — ${g.grupoNome}`}
               active={selectedGrupo === g.grupo}
               onClick={() => { onGrupoChange(g.grupo!); onClose?.(); }}
@@ -109,9 +109,9 @@ function FilterPanel({
           </p>
           <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
             <FilterBtn label="Todos" active={!selectedSubgrupo} onClick={() => { onSubgrupoChange(""); onClose?.(); }} />
-            {subgrupos.map(s => (
+            {subgrupos.map((s, idx) => (
               <FilterBtn
-                key={s.subgrupo}
+                key={`subgrupo-${s.subgrupo}-${idx}`}
                 label={s.subgrupoNome || s.subgrupo || ""}
                 active={selectedSubgrupo === s.subgrupo}
                 onClick={() => { onSubgrupoChange(s.subgrupo!); onClose?.(); }}
